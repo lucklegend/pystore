@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Not allowed · Offsure Shop{% endblock %}
+{% block content %}
+  <section class="empty">
+    <h1>Not allowed</h1>
+    <p class="muted">Your account doesn't have access to this page.</p>
+    <a class="button" href="{% url 'storefront:product_list' %}">Back to the shop</a>
+  </section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% load static wagtailcore_tags %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% if page %}{{ page.title }} · {% endif %}Offsure Shop{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav container">
+      <a class="brand" href="{% if site_root %}{% pageurl site_root %}{% else %}/{% endif %}">Offsure Shop</a>
+      <ul class="nav-links">
+        <li><a href="{% url 'storefront:product_list' %}">Shop</a></li>
+        {% for nav_page in nav_pages %}
+          <li><a href="{% pageurl nav_page %}">{{ nav_page.title }}</a></li>
+        {% endfor %}
+        {% if shop_user %}
+          <li><a href="{% url 'storefront:order_list' %}">Orders</a></li>
+          {% if shop_user.is_staff %}<li><a href="{% url 'storefront:manage_products' %}">Manage</a></li>{% endif %}
+        {% endif %}
+      </ul>
+      <div class="nav-actions">
+        <a class="cart-link" href="{% url 'storefront:cart' %}">Cart{% if cart_count %} <span class="badge">{{ cart_count }}</span>{% endif %}</a>
+        {% if shop_user %}
+          <span class="muted">Hi, {{ shop_user.username }}</span>
+          <form method="post" action="{% url 'storefront:logout' %}" class="inline">
+            {% csrf_token %}<button class="link-button" type="submit">Log out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'storefront:login' %}">Log in</a>
+          <a class="button small" href="{% url 'storefront:register' %}">Sign up</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}<li class="message {{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer container muted">
+    Pages by Wagtail · Products and orders by the shop API
+  </footer>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Manage products · Offsure Shop{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Manage products</h1>
+    <a class="button" href="{% url 'storefront:product_create' %}">+ New product</a>
+  </div>
+  <form class="filters" method="get">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search products" aria-label="Search products">
+    <button class="button secondary" type="submit">Search</button>
+  </form>
+  {% if products %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Category</th><th class="num">Price</th><th class="num">Stock</th><th>Visible</th><th></th></tr></thead>
+        <tbody>
+          {% for product in products %}
+            <tr>
+              <td><a href="{% url 'storefront:product_detail' product.id %}">{{ product.name }}</a></td>
+              <td>{{ product.category_name|default:"—" }}</td>
+              <td class="num">${{ product.price }}</td>
+              <td class="num">{{ product.stock }}</td>
+              <td>{% if product.is_active %}Yes{% else %}<span class="muted">No</span>{% endif %}</td>
+              <td class="actions">
+                <a href="{% url 'storefront:product_edit' product.id %}">Edit</a>
+                <a class="danger" href="{% url 'storefront:product_delete' product.id %}">Delete</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "storefront/_pager.html" %}
+  {% else %}
+    <p class="empty muted">No products found.</p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong · Offsure Shop{% endblock %}
+{% block content %}
+  <section class="empty">
+    <h1>{% if error.status == 503 %}Shop temporarily unavailable{% elif error.status == 403 %}Not allowed{% else %}Something went wrong{% endif %}</h1>
+    <p class="muted">{{ error.message }}</p>
+    <a class="button" href="{% url 'storefront:product_list' %}">Back to the shop</a>
+  </section>
+{% endblock %}

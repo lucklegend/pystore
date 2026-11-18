@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Log in · Offsure Shop{% endblock %}
+{% block content %}
+  <section class="auth card">
+    <h1>Log in</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% include "storefront/_form_fields.html" %}
+      <button class="button full" type="submit">Log in</button>
+    </form>
+    <p class="muted">New here? <a href="{% url 'storefront:register' %}">Create an account</a></p>
+  </section>
+{% endblock %}

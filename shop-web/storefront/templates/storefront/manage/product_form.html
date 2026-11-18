@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{% if product %}Edit {{ product.name }}{% else %}New product{% endif %} · Offsure Shop{% endblock %}
+{% block content %}
+  <p><a href="{% url 'storefront:manage_products' %}">← All products</a></p>
+  <section class="card form-card">
+    <h1>{% if product %}Edit {{ product.name }}{% else %}New product{% endif %}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "storefront/_form_fields.html" %}
+      <div class="form-actions">
+        <button class="button" type="submit">Save</button>
+        {% if product %}<a class="danger" href="{% url 'storefront:product_delete' product.id %}">Delete</a>{% endif %}
+      </div>
+    </form>
+  </section>
+{% endblock %}

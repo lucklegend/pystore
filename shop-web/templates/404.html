@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Not found · Offsure Shop{% endblock %}
+{% block content %}
+  <section class="empty">
+    <h1>Page not found</h1>
+    <p class="muted">We couldn't find what you were looking for.</p>
+    <a class="button" href="{% url 'storefront:product_list' %}">Back to the shop</a>
+  </section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Orders · Offsure Shop{% endblock %}
+{% block content %}
+  <h1>{% if shop_user.is_staff %}All orders{% else %}Your orders{% endif %}</h1>
+  {% if orders %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Order</th>{% if shop_user.is_staff %}<th>Customer</th>{% endif %}<th>Placed</th><th>Status</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          {% for order in orders %}
+            <tr>
+              <td><a href="{% url 'storefront:order_detail' order.id %}">#{{ order.id }}</a></td>
+              {% if shop_user.is_staff %}<td>{{ order.username }}</td>{% endif %}
+              <td>{{ order.created_at|slice:":10" }}</td>
+              <td><span class="status status-{{ order.status }}">{{ order.status|capfirst }}</span></td>
+              <td class="num">${{ order.total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "storefront/_pager.html" %}
+  {% else %}
+    <section class="empty">
+      <p class="muted">No orders yet.</p>
+      <a class="button" href="{% url 'storefront:product_list' %}">Start shopping</a>
+    </section>
+  {% endif %}
+{% endblock %}

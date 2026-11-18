@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% block content %}
+  <section class="hero">
+    <h1>{{ page.hero_title }}</h1>
+    {% if page.intro %}<div class="rich-text">{{ page.intro|richtext }}</div>{% endif %}
+    <a class="button" href="{% url 'storefront:product_list' %}">Browse products</a>
+  </section>
+
+  {% if page.featured_count %}
+    <section>
+      <h2>New arrivals</h2>
+      {% if shop_unavailable %}
+        <p class="message warning">Products can't be loaded right now. Please try again shortly.</p>
+      {% elif featured_products %}
+        <div class="grid">
+          {% for product in featured_products %}{% include "storefront/_product_card.html" %}{% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">No products yet.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

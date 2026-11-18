@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ product.name }} · Offsure Shop{% endblock %}
+{% block content %}
+  <section class="card form-card">
+    <h1>Delete {{ product.name }}?</h1>
+    <p>This can't be undone. Products that already appear in orders can't be deleted; mark them hidden instead.</p>
+    <form method="post" class="form-actions">
+      {% csrf_token %}
+      <button class="button danger-button" type="submit">Delete product</button>
+      <a href="{% url 'storefront:product_edit' product.id %}">Cancel</a>
+    </form>
+  </section>
+{% endblock %}

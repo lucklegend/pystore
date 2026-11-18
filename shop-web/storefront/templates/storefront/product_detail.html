@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} · Offsure Shop{% endblock %}
+{% block content %}
+  <p><a href="{% url 'storefront:product_list' %}">← Back to shop</a></p>
+  <div class="product-detail">
+    <div class="product-image large">
+      {% if product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}">{% else %}<span aria-hidden="true">{{ product.name|slice:":1" }}</span>{% endif %}
+    </div>
+    <div>
+      {% if product.category_name %}<p class="eyebrow">{{ product.category_name }}</p>{% endif %}
+      <h1>{{ product.name }}</h1>
+      <p class="price large">${{ product.price }}</p>
+      {% if product.description %}<p>{{ product.description|linebreaksbr }}</p>{% endif %}
+
+      {% if product.stock > 0 %}
+        <p class="muted small">{{ product.stock }} in stock</p>
+        <form method="post" action="{% url 'storefront:cart_add' product.id %}" class="add-to-cart">
+          {% csrf_token %}
+          <label for="id_quantity">Qty</label>
+          <input id="id_quantity" type="number" name="quantity" value="1" min="1" max="{% if product.stock < 99 %}{{ product.stock }}{% else %}99{% endif %}">
+          <button class="button" type="submit">Add to cart</button>
+        </form>
+      {% else %}
+        <p class="message warning">Out of stock</p>
+      {% endif %}
+
+      {% if shop_user.is_staff %}
+        <p><a href="{% url 'storefront:product_edit' product.id %}">Edit this product</a></p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} · Offsure Shop{% endblock %}
+{% block content %}
+  <p><a href="{% url 'storefront:order_list' %}">← All orders</a></p>
+  <div class="page-head">
+    <h1>Order #{{ order.id }}</h1>
+    <span class="status status-{{ order.status }}">{{ order.status|capfirst }}</span>
+  </div>
+  <p class="muted">Placed {{ order.created_at|slice:":10" }}{% if shop_user.is_staff %} by {{ order.username }}{% endif %}</p>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Product</th><th>Unit price</th><th>Qty</th><th class="num">Subtotal</th></tr></thead>
+      <tbody>
+        {% for item in order.items %}
+          <tr><td>{{ item.product_name }}</td><td>${{ item.unit_price }}</td><td>{{ item.quantity }}</td><td class="num">${{ item.subtotal }}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th colspan="3">Total</th><th class="num">${{ order.total }}</th></tr></tfoot>
+    </table>
+  </div>
+
+  {% if order.status == "pending" %}
+    <form method="post" action="{% url 'storefront:order_cancel' order.id %}">
+      {% csrf_token %}<button class="button secondary" type="submit">Cancel order</button>
+    </form>
+  {% endif %}
+{% endblock %}

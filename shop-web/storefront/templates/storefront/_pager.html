@@ -1,0 +1,6 @@
+{% if prev_query or next_query %}
+  <nav class="pager" aria-label="Pagination">
+    {% if prev_query %}<a class="button secondary" href="?{{ prev_query }}">← Previous</a>{% else %}<span></span>{% endif %}
+    {% if next_query %}<a class="button secondary" href="?{{ next_query }}">Next →</a>{% endif %}
+  </nav>
+{% endif %}
