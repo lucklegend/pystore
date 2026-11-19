@@ -4,10 +4,10 @@ Django + Django REST Framework backend for the shop. It owns customers, login to
 
 ## Run it
 
-Requires Python 3.10+ (developed on 3.12).
+Requires Python 3.10+ (developed on 3.12). `py -3.12` picks the version even if an older Python is installed. Skip the `venv` line if `.venv` already exists.
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt
 .\.venv\Scripts\python manage.py migrate
 .\.venv\Scripts\python manage.py seed_store         # demo categories and products
