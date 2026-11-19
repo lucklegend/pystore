@@ -4,10 +4,12 @@ The Wagtail storefront. Editors manage content pages (home page text, About and 
 
 ## Run it
 
+Requires Python 3.10+ (developed on 3.12). `py -3.12` picks the version even if an older Python is installed. Skip the `venv` line if `.venv` already exists.
+
 Start shop-api first (port 8001). Then:
 
 ```powershell
-python -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt
 .\.venv\Scripts\python manage.py migrate
 .\.venv\Scripts\python manage.py bootstrap_site     # creates the Home and About pages
