@@ -1,15 +1,27 @@
 from django.contrib import admin
+from django.utils.html import format_html_join
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Order, OrderItem, Product
+
+# Empty choice of the changelist's action dropdown, in place of Django's "---------".
+SELECT_ACTION_CHOICE = [("", _("Select action"))]
+
+
+def action_choices_with_prompt(model_admin, request, default_choices=SELECT_ACTION_CHOICE):
+    return admin.ModelAdmin.get_action_choices(model_admin, request, default_choices)
 
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     search_fields = ["name"]
+    get_action_choices = action_choices_with_prompt
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    get_action_choices = action_choices_with_prompt
     list_display = ["name", "category", "price", "stock", "is_active", "updated_at"]
     list_filter = ["is_active", "category"]
     list_editable = ["price", "stock", "is_active"]
@@ -24,7 +36,22 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "status", "created_at"]
+    get_action_choices = action_choices_with_prompt
+    list_display = ["id", "user", "ordered_items", "order_total", "status", "created_at"]
     list_filter = ["status"]
     list_editable = ["status"]
     inlines = [OrderItemInline]
+
+    def get_queryset(self, request):
+        # One query for every listed order's items, rather than one per row.
+        return super().get_queryset(request).select_related("user").prefetch_related("items__product")
+
+    @admin.display(description=_("Items"))
+    def ordered_items(self, order: Order):
+        return format_html_join(
+            mark_safe("<br>"), "{} × {}", ((item.quantity, item.product.name) for item in order.items.all())
+        )
+
+    @admin.display(description=_("Total"))
+    def order_total(self, order: Order):
+        return order.total
