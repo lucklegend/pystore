@@ -5,23 +5,14 @@ from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Order, OrderItem, Product
 
-# Empty choice of the changelist's action dropdown, in place of Django's "---------".
-SELECT_ACTION_CHOICE = [("", _("Select action"))]
-
-
-def action_choices_with_prompt(model_admin, request, default_choices=SELECT_ACTION_CHOICE):
-    return admin.ModelAdmin.get_action_choices(model_admin, request, default_choices)
-
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     search_fields = ["name"]
-    get_action_choices = action_choices_with_prompt
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    get_action_choices = action_choices_with_prompt
     list_display = ["name", "category", "price", "stock", "is_active", "updated_at"]
     list_filter = ["is_active", "category"]
     list_editable = ["price", "stock", "is_active"]
@@ -36,7 +27,6 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    get_action_choices = action_choices_with_prompt
     list_display = ["id", "user", "ordered_items", "order_total", "status", "created_at"]
     list_filter = ["status"]
     list_editable = ["status"]

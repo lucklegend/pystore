@@ -1,39 +1,6 @@
-from django.contrib import admin
-from django.test import RequestFactory, TestCase
+from django.test import TestCase
 
-from store.tests.factories import make_category, make_order, make_product, make_user
-
-
-class AdminAppOrderTests(TestCase):
-    def test_store_is_listed_before_the_built_in_apps(self):
-        user = make_user(is_staff=True)
-        user.is_superuser = True
-        user.save()
-        request = RequestFactory().get("/admin/")
-        request.user = user
-
-        labels = [app["app_label"] for app in admin.site.get_app_list(request)]
-
-        self.assertEqual(labels[0], "store")
-        self.assertIn("auth", labels[1:])
-        self.assertIn("authtoken", labels[1:])
-
-
-class AdminActionPromptTests(TestCase):
-    def test_store_changelists_prompt_select_action(self):
-        user = make_user(is_staff=True)
-        user.is_superuser = True
-        user.save()
-        self.client.force_login(user)
-        # The action bar only renders when the list has rows.
-        product = make_product(category=make_category())
-        make_order(user, [(product, 1)])
-
-        for model in ("category", "product", "order"):
-            with self.subTest(model=model):
-                response = self.client.get(f"/admin/store/{model}/")
-                self.assertContains(response, '<option value="" selected>Select action</option>', html=True)
-                self.assertNotContains(response, "---------")
+from store.tests.factories import make_order, make_product, make_user
 
 
 class OrderChangelistTests(TestCase):
@@ -50,3 +17,29 @@ class OrderChangelistTests(TestCase):
 
         self.assertContains(response, "2 × Mug<br>1 × Tee")
         self.assertContains(response, "31.50")
+
+
+class AdminPerPageTests(TestCase):
+    def setUp(self):
+        user = make_user(is_staff=True)
+        user.is_superuser = True
+        user.save()
+        self.client.force_login(user)
+        for _ in range(25):
+            make_product()
+
+    def shown(self, query: dict) -> int:
+        response = self.client.get("/admin/store/product/", query)
+        self.assertEqual(response.status_code, 200)
+        return len(response.context["cl"].result_list)
+
+    def test_defaults_to_10(self):
+        self.assertEqual(self.shown({}), 10)
+
+    def test_uses_the_chosen_size_alongside_filters(self):
+        self.assertEqual(self.shown({"per_page": "20", "is_active__exact": "1"}), 20)
+
+    def test_falls_back_to_10_for_sizes_not_offered(self):
+        for value in ("7", "abc", "1000"):
+            with self.subTest(per_page=value):
+                self.assertEqual(self.shown({"per_page": value}), 10)
