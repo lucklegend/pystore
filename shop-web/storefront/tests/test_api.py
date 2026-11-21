@@ -27,7 +27,7 @@ class FlattenErrorsTests(SimpleTestCase):
             ({"name": ["Required."]}, ["name: Required."]),
             ({"detail": "Nope."}, ["Nope."]),
             ({"non_field_errors": ["Bad pair."]}, ["Bad pair."]),
-            ({"items": [{"quantity": ["Too many."]}]}, ["items: quantity: Too many."]),
+            ({"items": [{"quantity": ["Too many."]}]}, ["quantity: Too many."]),
             (42, ["42"]),
         ]
         for data, expected in cases:

@@ -17,7 +17,7 @@ def place_order(user, lines: Iterable[OrderLine]) -> Order:
         quantities[product_id] += quantity
     if not quantities:
         raise ValidationError({"items": ["An order needs at least one item."]})
-
+    # this will check the database for stock availability and reserve it in a transaction
     with transaction.atomic():
         products = Product.objects.select_for_update().filter(pk__in=quantities, is_active=True)
         by_id = {product.pk: product for product in products}
@@ -27,7 +27,7 @@ def place_order(user, lines: Iterable[OrderLine]) -> Order:
             raise ValidationError({"items": [f"Product {pk} is not available." for pk in sorted(missing)]})
 
         short = [
-            f"Only {by_id[pk].stock} of '{by_id[pk].name}' left in stock."
+            stock_shortage_message(by_id[pk])
             for pk, quantity in quantities.items()
             if by_id[pk].stock < quantity
         ]
@@ -41,6 +41,12 @@ def place_order(user, lines: Iterable[OrderLine]) -> Order:
             product.stock -= quantity
             product.save(update_fields=["stock", "updated_at"])
     return order
+
+
+def stock_shortage_message(product: Product) -> str:
+    if product.stock == 0:
+        return f"No {product.name} left in the stock."
+    return f"Only {product.stock} of '{product.name}' left in stock."
 
 
 def cancel_order(order: Order) -> Order:

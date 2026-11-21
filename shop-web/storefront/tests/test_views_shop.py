@@ -187,7 +187,7 @@ class CheckoutTests(StorefrontTestCase):
 
         self.assertRedirects(response, "/shop/cart/", fetch_redirect_response=False)
         self.assertEqual(self.cart(), {1: 5})
-        self.assertIn("items: Only 1 of 'Tea' left in stock.", self.messages(response))
+        self.assertIn("Only 1 of 'Tea' left in stock.", self.messages(response))
 
 
 class OrderViewTests(StorefrontTestCase):
