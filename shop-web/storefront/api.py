@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 import requests
 
-NON_FIELD_KEYS = ("detail", "non_field_errors")
+NON_FIELD_KEYS = ("detail", "non_field_errors", "items")
 
 
 def flatten_errors(data: Any, prefix: str = "") -> list[str]:
