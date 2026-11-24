@@ -5,3 +5,5 @@ db.sqlite3
 staticfiles/
 .env
 .env.test
+media/
+legacy_cms.sqlite3

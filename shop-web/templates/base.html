@@ -1,23 +1,24 @@
-{% load static versioned_static wagtailcore_tags %}<!doctype html>
+{% load static versioned_static %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{% if page %}{{ page.title }} · {% endif %}Offsure Shop{% endblock %}</title>
+  <title>{% block title %}{% if page %}{{ page.seo_title|default:page.title }} · {% endif %}Offsure Shop{% endblock %}</title>
   <link rel="stylesheet" href="{% versioned_static 'css/site.css' %}">
 </head>
 <body>
   <header class="site-header">
     <nav class="nav container">
-      <a class="brand" href="{% if site_root %}{% pageurl site_root %}{% else %}/{% endif %}">Offsure Shop</a>
+      <a class="brand" href="{{ site_url }}">Offsure Shop</a>
       <ul class="nav-links">
         <li><a href="{% url 'storefront:product_list' %}">Shop</a></li>
         {% for nav_page in nav_pages %}
-          <li><a href="{% pageurl nav_page %}">{{ nav_page.title }}</a></li>
+          <li><a href="{{ nav_page.url }}">{{ nav_page.title }}</a></li>
         {% endfor %}
         {% if shop_user %}
           <li><a href="{% url 'storefront:order_list' %}">Orders</a></li>
-          {% if shop_user.is_staff %}<li><a href="{% url 'storefront:manage_products' %}">Manage</a></li>{% endif %}
+          {% if shop_user.is_staff %}<li><a href="{% url 'storefront:manage_products' %}">Manage</a></li>
+            <li><a href="{{ cms_url }}">CMS</a></li>{% endif %}
         {% endif %}
       </ul>
       <div class="nav-actions">

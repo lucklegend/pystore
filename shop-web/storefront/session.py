@@ -1,6 +1,7 @@
-"""The shop customer's login lives in the session as an API token plus a cached user record.
+"""The shop user's login lives in the session as an API token plus a cached user record.
 
-This is separate from Django auth, which this project uses only for Wagtail CMS editors.
+There is no Django auth in this project. Sessions are signed cookies, so shop-api,
+which checks the token on every call, is where a login is really ended.
 """
 from __future__ import annotations
 
@@ -11,13 +12,16 @@ USER_KEY = "shop_user"
 
 
 def sign_in(session: SessionBase, token: str, user: dict) -> None:
-    session.cycle_key()  # new session id on login, against session fixation
+    # With signed cookies cycle_key only marks the session for saving: there is no
+    # server-side id to rotate. The cookie is a signature of the contents, so storing
+    # the token already gives the browser a new value nobody held before.
+    session.cycle_key()
     session[TOKEN_KEY] = token
     session[USER_KEY] = user
 
 
 def sign_out(session: SessionBase) -> None:
-    # Pop only shop keys so a CMS editor logged in on the same browser stays logged in.
+    # Pop only the login keys, so the cart survives a logout.
     session.pop(TOKEN_KEY, None)
     session.pop(USER_KEY, None)
     session.cycle_key()

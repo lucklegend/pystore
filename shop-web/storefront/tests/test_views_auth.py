@@ -39,7 +39,7 @@ class LoginViewTests(StorefrontTestCase):
 
         for target in ("https://evil.example/", "//evil.example/"):
             with self.subTest(target=target):
-                self.client.session.flush()
+                self.log_out()
                 response = self.client.post(LOGIN, {"username": "alice", "password": USER_PASSWORD, "next": target})
 
                 self.assertRedirects(response, "/shop/", fetch_redirect_response=False)

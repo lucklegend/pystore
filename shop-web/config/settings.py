@@ -1,8 +1,8 @@
-"""Settings for the Wagtail storefront.
+"""Settings for the storefront.
 
-This project has no shop data of its own: products, customers and orders
-live in shop-api and are reached over REST at SHOP_API_URL.
-Its own database holds only CMS pages, images and sessions.
+This project has no database. Products, customers, orders and CMS pages
+live in shop-api and are reached over REST at SHOP_API_URL. Sessions are
+signed cookies and cached CMS payloads live in process memory.
 """
 import os
 from pathlib import Path
@@ -15,27 +15,14 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").sp
 
 SHOP_API_URL = os.environ.get("SHOP_API_URL", "http://127.0.0.1:8001/api").rstrip("/")
 SHOP_API_TIMEOUT = float(os.environ.get("SHOP_API_TIMEOUT", "5"))
+SHOP_API_PUBLIC_URL = os.environ.get("SHOP_API_PUBLIC_URL", "http://127.0.0.1:8001").rstrip("/")
+# Must equal shop-api's SSO_CLIENT_SECRET. The default is for development only.
+SSO_CLIENT_SECRET = os.environ.get("SSO_CLIENT_SECRET", "dev-only-insecure-sso-secret-change-me")
+CMS_CACHE_SECONDS = int(os.environ.get("CMS_CACHE_SECONDS", "60"))
 
 INSTALLED_APPS = [
     "home",
     "storefront",
-    "wagtail.contrib.forms",
-    "wagtail.contrib.redirects",
-    "wagtail.embeds",
-    "wagtail.sites",
-    "wagtail.users",
-    "wagtail.snippets",
-    "wagtail.documents",
-    "wagtail.images",
-    "wagtail.search",
-    "wagtail.admin",
-    "wagtail",
-    "modelcluster",
-    "taggit",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
@@ -45,10 +32,8 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "wagtail.contrib.redirects.middleware.RedirectMiddleware",
     "storefront.middleware.ShopApiMiddleware",
 ]
 
@@ -63,7 +48,6 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "storefront.context_processors.shop",
             ],
@@ -73,19 +57,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
+DATABASES = {}
+
+# The session lives in a signed cookie that holds the shop-api token. It is
+# signed, not encrypted, and shop-api stays the place where a token is revoked.
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_COOKIE_NAME = "shopweb_session"
+SESSION_COOKIE_AGE = int(os.environ.get("SESSION_COOKIE_AGE", str(7 * 24 * 60 * 60)))
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
+CSRF_COOKIE_NAME = "shopweb_csrftoken"
+CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "0") == "1"
+
+CACHES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
-
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -95,12 +84,4 @@ USE_TZ = True
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
-
-WAGTAIL_SITE_NAME = "Offsure Shop"
-WAGTAILADMIN_BASE_URL = os.environ.get("WAGTAILADMIN_BASE_URL", "http://127.0.0.1:8080")
-WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "txt", "xlsx", "zip"]

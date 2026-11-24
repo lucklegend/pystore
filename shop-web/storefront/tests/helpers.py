@@ -3,8 +3,11 @@ from __future__ import annotations
 
 from unittest.mock import create_autospec, patch
 
+from django.conf import settings
 from django.contrib.messages import get_messages
-from django.test import TestCase
+from django.contrib.sessions.backends.signed_cookies import SessionStore
+from django.core.cache import cache
+from django.test import SimpleTestCase
 
 from storefront.api import ShopApi
 from storefront.cart import CART_KEY
@@ -47,28 +50,42 @@ def order(order_id: int = 1, **overrides) -> dict:
     }
 
 
-class StorefrontTestCase(TestCase):
-    """Replaces the ShopApi the middleware builds with an autospecced mock at `self.api`."""
+class StorefrontTestCase(SimpleTestCase):
+    """Replaces the ShopApi the middleware builds with an autospecced mock at `self.api`.
+
+    Sessions are signed cookies, so the test client does not carry one that was saved
+    outside a request. The helpers below write the cookie themselves.
+    """
 
     def setUp(self):
         super().setUp()
+        cache.clear()
+        self.addCleanup(cache.clear)
         self.api = create_autospec(ShopApi, instance=True)
         self.api.list_categories.return_value = []
         self.api.list_products.return_value = page([])
+        self.api.get_cms_navigation.return_value = {"home_url": "/", "items": []}
         patcher = patch("storefront.middleware.ShopApi", return_value=self.api)
         self.api_class = patcher.start()
         self.addCleanup(patcher.stop)
+
+    def save_session(self, session: SessionStore) -> None:
+        session.save()
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 
     def log_in(self, user: dict = CUSTOMER, token: str = "secret-token") -> None:
         session = self.client.session
         session[TOKEN_KEY] = token
         session[USER_KEY] = user
-        session.save()
+        self.save_session(session)
+
+    def log_out(self) -> None:
+        self.save_session(SessionStore())
 
     def fill_cart(self, lines: dict[int, int]) -> None:
         session = self.client.session
         session[CART_KEY] = {str(pk): quantity for pk, quantity in lines.items()}
-        session.save()
+        self.save_session(session)
 
     def cart(self) -> dict[int, int]:
         return {int(pk): quantity for pk, quantity in self.client.session.get(CART_KEY, {}).items()}

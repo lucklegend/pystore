@@ -1,9 +1,19 @@
+from urllib.parse import urlsplit
+
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from wagtail.models import Page, Site
 
 from home.models import HomePage, StandardPage
+
+DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def site_address(url: str) -> tuple[str, int]:
+    """The hostname and port a Wagtail Site needs so its page URLs point at `url`."""
+    parts = urlsplit(url)
+    return parts.hostname or "localhost", parts.port or DEFAULT_PORTS.get(parts.scheme, 80)
 
 
 class Command(BaseCommand):
@@ -37,11 +47,13 @@ class Command(BaseCommand):
                 body="<p>This page is managed in Wagtail. Products come from the shop API.</p>",
             )
         )
+        # The storefront serves the pages, so the Site carries its host and "View live" opens it.
+        hostname, port = site_address(settings.STOREFRONT_URL)
         Site.objects.update_or_create(
             is_default_site=True,
             defaults={
-                "hostname": "localhost",
-                "port": 80,
+                "hostname": hostname,
+                "port": port,
                 "site_name": settings.WAGTAIL_SITE_NAME,
                 "root_page": home,
             },
