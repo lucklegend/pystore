@@ -1,0 +1,28 @@
+{% comment %}
+Django's admin/pagination.html (5.2), plus the "Show [10 ▾] per page" dropdown
+from config/admin_per_page.py. Re-check against Django's copy when upgrading.
+{% endcomment %}
+{% load admin_list %}
+{% load i18n %}
+<p class="paginator">
+{% if pagination_required %}
+{% for i in page_range %}
+    {% paginator_number cl i %}
+{% endfor %}
+{% endif %}
+{{ cl.result_count }} {% if cl.result_count == 1 %}{{ cl.opts.verbose_name }}{% else %}{{ cl.opts.verbose_name_plural }}{% endif %}
+{% if cl.per_page_options %}
+<label class="per-page" style="margin-inline-start: 1.5em">
+  {% translate "Show" %}
+  {# No name attribute: the select only navigates and is never submitted with the changelist form. #}
+  <select onchange="window.location.href = this.value">
+    {% for option in cl.per_page_options %}
+      <option value="{{ option.url }}"{% if option.current %} selected{% endif %}>{{ option.size }}</option>
+    {% endfor %}
+  </select>
+  {% translate "per page" %}
+</label>
+{% endif %}
+{% if show_all_url %}<a href="{{ show_all_url }}" class="showall">{% translate 'Show all' %}</a>{% endif %}
+{% if cl.formset and cl.result_count %}<input type="submit" name="_save" class="default" value="{% translate 'Save' %}">{% endif %}
+</p>

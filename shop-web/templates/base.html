@@ -1,10 +1,10 @@
-{% load static wagtailcore_tags %}<!doctype html>
+{% load static versioned_static wagtailcore_tags %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% if page %}{{ page.title }} · {% endif %}Offsure Shop{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% versioned_static 'css/site.css' %}">
 </head>
 <body>
   <header class="site-header">

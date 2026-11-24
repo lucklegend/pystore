@@ -85,7 +85,7 @@ class PlaceOrderTests(TestCase):
 
         self.assertCountEqual(
             item_errors(caught.exception),
-            ["Only 1 of 'Tea' left in stock.", "Only 0 of 'Mug' left in stock."],
+            ["Only 1 of 'Tea' left in stock.", "No Mug left in the stock."],
         )
         self.assertFalse(Order.objects.exists())
         self.assertEqual(Product.objects.get(pk=plenty.pk).stock, 50)

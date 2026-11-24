@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html_join
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 from .models import Category, Order, OrderItem, Product
 
@@ -24,7 +27,21 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "status", "created_at"]
+    list_display = ["id", "user", "ordered_items", "order_total", "status", "created_at"]
     list_filter = ["status"]
     list_editable = ["status"]
     inlines = [OrderItemInline]
+
+    def get_queryset(self, request):
+        # One query for every listed order's items, rather than one per row.
+        return super().get_queryset(request).select_related("user").prefetch_related("items__product")
+
+    @admin.display(description=_("Items"))
+    def ordered_items(self, order: Order):
+        return format_html_join(
+            mark_safe("<br>"), "{} × {}", ((item.quantity, item.product.name) for item in order.items.all())
+        )
+
+    @admin.display(description=_("Total"))
+    def order_total(self, order: Order):
+        return order.total

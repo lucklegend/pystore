@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
+{% load static wagtailcore_tags %}
 {% block content %}
   <section class="hero">
     <h1>{{ page.hero_title }}</h1>
@@ -21,4 +21,27 @@
       {% endif %}
     </section>
   {% endif %}
+
+  <section class="payments" aria-labelledby="payments-heading">
+    <h2 id="payments-heading">Payment methods</h2>
+    <p class="muted">Pay the way you like. We accept these e-wallets and cards.</p>
+    <div class="payment-groups">
+      <div class="payment-group">
+        <h3 class="eyebrow">E-wallets</h3>
+        <ul class="payment-list">
+          <li class="payment-logo"><img src="{% static 'img/payments/gcash.svg' %}" alt="GCash" height="32"></li>
+          <li class="payment-logo dark"><img src="{% static 'img/payments/maya.svg' %}" alt="Maya" height="32"></li>
+          <li class="payment-logo"><img src="{% static 'img/payments/alipay.svg' %}" alt="Alipay" height="32"></li>
+          <li class="payment-logo"><img src="{% static 'img/payments/payoneer.svg' %}" alt="Payoneer" height="32"></li>
+        </ul>
+      </div>
+      <div class="payment-group">
+        <h3 class="eyebrow">Bank cards</h3>
+        <ul class="payment-list">
+          <li class="payment-logo"><img src="{% static 'img/payments/visa.svg' %}" alt="Visa" height="32"></li>
+          <li class="payment-logo"><img src="{% static 'img/payments/mastercard.svg' %}" alt="Mastercard" height="32"></li>
+        </ul>
+      </div>
+    </div>
+  </section>
 {% endblock %}
