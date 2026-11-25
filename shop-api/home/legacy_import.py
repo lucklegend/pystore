@@ -10,7 +10,9 @@ and search index code always work on it.
 """
 import json
 from collections import Counter
+from collections.abc import Iterable
 from io import TextIOBase
+from itertools import chain
 from pathlib import Path
 
 from django.apps import apps
@@ -23,10 +25,10 @@ from django.core.management import call_command
 from django.core.management.color import no_style
 from django.core.serializers.base import DeserializationError
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import IntegrityError, connections, transaction
+from django.db import DEFAULT_DB_ALIAS, IntegrityError, connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.migrations.recorder import MigrationRecorder
-from django.db.models import Model, QuerySet
+from django.db.models import Field, Model, QuerySet
 from taggit.models import Tag, TaggedItem
 from wagtail.contrib.redirects.models import Redirect
 from wagtail.documents import get_document_model
@@ -112,11 +114,11 @@ def copied_querysets(alias: str) -> list[QuerySet]:
     ]
 
 
-def export_rows(querysets: list[QuerySet]) -> list[Row]:
+def export_rows(object_lists: list[Iterable[Model]]) -> list[Row]:
     return [
         row
-        for queryset in querysets
-        for row in serializers.serialize("python", queryset, use_natural_foreign_keys=True)
+        for objects in object_lists
+        for row in serializers.serialize("python", objects, use_natural_foreign_keys=True)
     ]
 
 
@@ -187,9 +189,27 @@ def report_shared_differences(source: str, target: str, out: TextIOBase) -> None
             out.write(f"Kept, only in the target: {row}\n")
 
 
-def related_field_names(model_label: str, related_model: type[Model]) -> list[str]:
-    model = apps.get_model(model_label)
-    return [field.name for field in model._meta.local_fields if field.is_relation and field.related_model is related_model]
+def related_fields(model: type[Model], related_model: type[Model]) -> list[Field]:
+    return [field for field in model._meta.local_fields if field.is_relation and field.related_model is related_model]
+
+
+def clear_missing_users(object_lists: list[list[Model]], source: str, out: TextIOBase) -> list[str]:
+    """Clear user ids the source no longer holds, which log entries keep after a user is deleted.
+
+    Serializing such a reference by natural key would fail, so the objects are changed in memory.
+    """
+    user_model = get_user_model()
+    known = set(user_model._base_manager.using(source).values_list("pk", flat=True))
+    cleared = []
+    for obj in chain.from_iterable(object_lists):
+        for field in related_fields(type(obj), user_model):
+            user_id = getattr(obj, field.attname)
+            if user_id is not None and user_id not in known:
+                setattr(obj, field.attname, None)
+                cleared.append(f"{obj._meta.label_lower} {obj.pk} {field.name} (was user id {user_id})")
+    for entry in cleared:
+        out.write(f"No such user in the source, cleared: {entry}\n")
+    return cleared
 
 
 def remap_users(rows: list[Row], target: str, out: TextIOBase) -> list[str]:
@@ -198,13 +218,13 @@ def remap_users(rows: list[Row], target: str, out: TextIOBase) -> list[str]:
     usernames = set(user_model.objects.using(target).values_list(user_model.USERNAME_FIELD, flat=True))
     cleared = []
     for row in rows:
-        for name in related_field_names(row["model"], user_model):
-            if row["fields"][name] is None:
+        for field in related_fields(apps.get_model(row["model"]), user_model):
+            if row["fields"][field.name] is None:
                 continue
-            (username,) = row["fields"][name]
+            (username,) = row["fields"][field.name]
             if username not in usernames:
-                row["fields"][name] = None
-                cleared.append(f"{row['model']} {row['pk']} {name} (was {username!r})")
+                row["fields"][field.name] = None
+                cleared.append(f"{row['model']} {row['pk']} {field.name} (was {username!r})")
     for entry in cleared:
         out.write(f"No such user here, cleared: {entry}\n")
     return cleared
@@ -218,9 +238,9 @@ def rewrite_site(rows: list[Row], site_url: str, out: TextIOBase) -> None:
     fields = defaults[0]["fields"]
     old, new = (fields["hostname"], fields["port"]), site_address(site_url)
     for row in rows:
-        for name in related_field_names(row["model"], Site):
-            if row["fields"][name] is not None and tuple(row["fields"][name]) == old:
-                row["fields"][name] = new
+        for field in related_fields(apps.get_model(row["model"]), Site):
+            if row["fields"][field.name] is not None and tuple(row["fields"][field.name]) == old:
+                row["fields"][field.name] = new
     fields["hostname"], fields["port"] = new
     out.write(f"Default site {old[0]}:{old[1]} becomes {new[0]}:{new[1]}.\n")
 
@@ -288,8 +308,11 @@ def file_hash(storage: Storage, name: str) -> str:
         return hash_filelike(handle)
 
 
-def copy_media(rows: list[Row], media_source: Path, storage: Storage, out: TextIOBase) -> None:
-    """Copy each image and document file under its own name and check it against its recorded hash."""
+def copy_media(rows: list[Row], media_source: Path, storage: Storage, saved: list[str], out: TextIOBase) -> None:
+    """Copy each image and document file under its own name and check it against its recorded hash.
+
+    Each name it stores is appended to `saved` straight away, so a rollback can remove the file again.
+    """
     labels = {model._meta.label_lower for model in media_models()}
     for row in (row for row in rows if row["model"] in labels):
         name, recorded = row["fields"]["file"], row["fields"]["file_hash"]
@@ -306,8 +329,9 @@ def copy_media(rows: list[Row], media_source: Path, storage: Storage, out: TextI
             out.write(f"Already in place: {name}\n")
             continue
         with path.open("rb") as handle:
-            saved = storage.save(name, File(handle))
-        if saved != name or file_hash(storage, saved) != digest:
+            stored = storage.save(name, File(handle))
+        saved.append(stored)
+        if stored != name or file_hash(storage, stored) != digest:
             raise LegacyImportError(f"{row['model']} {row['pk']}: copying {name} did not reproduce the file.")
         out.write(f"Copied {name}\n")
 
@@ -350,7 +374,12 @@ def import_legacy_cms(
     dry_run: bool,
     out: TextIOBase,
 ) -> None:
-    """Check, copy, verify and index in one transaction on the target; `dry_run` rolls it back."""
+    """Check, copy, verify and index in one transaction on the target; `dry_run` rolls it back.
+
+    Files copied into `storage` are deleted again whenever the transaction does not commit.
+    """
+    if target != DEFAULT_DB_ALIAS:
+        raise LegacyImportError(f"The target must be the {DEFAULT_DB_ALIAS!r} database, not {target!r}.")
     if source == target:
         raise LegacyImportError("The source and the target are the same database.")
     require_source_file(connections[source])
@@ -360,18 +389,29 @@ def import_legacy_cms(
     check_unhandled(source, copied)
     report_shared_differences(source, target, out)
 
-    rows = export_rows(copied)
+    objects = [list(queryset) for queryset in copied]
+    clear_missing_users(objects, source, out)
+    rows = export_rows(objects)
     remap_users(rows, target, out)
     rewrite_site(rows, site_url, out)
-    with transaction.atomic(using=target):
-        clear_target(target, replace, out)
-        load_rows(rows, target)
-        copy_media(rows, media_source, storage, out)
-        problems = verify(rows, target, storage, out)
-        if problems:
-            raise LegacyImportError("Verification failed, nothing was written:\n" + "\n".join(problems))
-        call_command("rebuild_references_index", stdout=out)
-        call_command("update_index", stdout=out)
-        if dry_run:
-            transaction.set_rollback(True, using=target)
+    saved_files: list[str] = []
+    committed = False
+    try:
+        with transaction.atomic(using=target):
+            clear_target(target, replace, out)
+            load_rows(rows, target)
+            copy_media(rows, media_source, storage, saved_files, out)
+            problems = verify(rows, target, storage, out)
+            if problems:
+                raise LegacyImportError("Verification failed, nothing was written:\n" + "\n".join(problems))
+            call_command("rebuild_references_index", stdout=out)
+            call_command("update_index", stdout=out)
+            if dry_run:
+                transaction.set_rollback(True, using=target)
+        committed = not dry_run
+    finally:
+        if not committed:
+            for name in saved_files:
+                storage.delete(name)
+                out.write(f"Removed the copied file {name}\n")
     out.write("Dry run: rolled back, nothing was written.\n" if dry_run else f"Imported {len(rows)} rows.\n")

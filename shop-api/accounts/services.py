@@ -10,10 +10,14 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.sessions.models import Session
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
-from .models import HandoffCode, LoginSession
+from .models import HandoffCode, LoginSession, SignOutEpoch
+
+# The user's SignOutEpoch as it stood when this session signed in. CmsStaffOnlyMiddleware signs out a stale one.
+SESSION_EPOCH_KEY = "accounts_sign_out_epoch"
 
 
 def is_cms_eligible(user: AbstractUser) -> bool:
@@ -82,10 +86,20 @@ def redeem_code(
     return user
 
 
+def sign_out_epoch(user: AbstractUser) -> int:
+    return SignOutEpoch.objects.filter(user=user).values_list("value", flat=True).first() or 0
+
+
 def sign_out_everywhere(user: AbstractUser) -> None:
-    """End the user's API token and every shop-api session they signed in with."""
+    """End the user's API token and every shop-api session they signed in with.
+
+    Bumping the epoch ends every CMS session, including one whose key rotated since login.
+    Deleting the recorded sessions also ends the ones outside the CMS whose key never rotated.
+    """
     with transaction.atomic():
         Token.objects.filter(user=user).delete()
+        SignOutEpoch.objects.get_or_create(user=user)
+        SignOutEpoch.objects.filter(user=user).update(value=F("value") + 1)
         login_sessions = LoginSession.objects.filter(user=user)
         Session.objects.filter(session_key__in=login_sessions.values("session_key")).delete()
         login_sessions.delete()

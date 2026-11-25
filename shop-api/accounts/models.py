@@ -20,6 +20,22 @@ class HandoffCode(models.Model):
         return f"{self.audience} code for {self.user_id}"
 
 
+class SignOutEpoch(models.Model):
+    """How often a user has signed out everywhere. A session copies it at login, and a stale copy is signed out.
+
+    Unlike LoginSession it is tied to the user, so it still holds after the session key rotates.
+    No row means 0.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True, related_name="sign_out_epoch"
+    )
+    value = models.PositiveIntegerField(default=0)
+
+    def __str__(self) -> str:
+        return f"sign-out epoch {self.value} for {self.user_id}"
+
+
 class LoginSession(models.Model):
     """A Django session a user signed in with, so logging out elsewhere can end it."""
 

@@ -6,9 +6,14 @@ the defaults are for local development only.
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-api-key-change-me")
+DEV_SECRET_KEY = "dev-only-insecure-api-key-change-me"
+DEV_SSO_CLIENT_SECRET = "dev-only-insecure-sso-secret-change-me"
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", DEV_SECRET_KEY)
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -16,8 +21,22 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").sp
 STOREFRONT_URL = os.environ.get("STOREFRONT_URL", "http://127.0.0.1:8080").rstrip("/")
 SHOP_API_PUBLIC_URL = os.environ.get("SHOP_API_PUBLIC_URL", "http://127.0.0.1:8001").rstrip("/")
 # Must equal shop-web's SSO_CLIENT_SECRET. The default is for development only.
-SSO_CLIENT_SECRET = os.environ.get("SSO_CLIENT_SECRET", "dev-only-insecure-sso-secret-change-me")
+SSO_CLIENT_SECRET = os.environ.get("SSO_CLIENT_SECRET", DEV_SSO_CLIENT_SECRET)
 SSO_CODE_TTL_SECONDS = int(os.environ.get("SSO_CODE_TTL_SECONDS", "60"))
+
+if not DEBUG:
+    for _name, _value, _dev_default in (
+        ("DJANGO_SECRET_KEY", SECRET_KEY, DEV_SECRET_KEY),
+        ("SSO_CLIENT_SECRET", SSO_CLIENT_SECRET, DEV_SSO_CLIENT_SECRET),
+    ):
+        if not _value or _value == _dev_default:
+            raise ImproperlyConfigured(f"{_name} must be set to a non-default value when DJANGO_DEBUG is off.")
+
+# One switch for Secure and the __Host- prefix, so one can never be set without the other:
+# a browser silently drops a __Host- cookie that is not Secure. __Host- also requires
+# Path=/ and no Domain, which are the defaults and are left alone.
+SECURE_COOKIES = os.environ.get("DJANGO_SECURE_COOKIES", "0") == "1"
+COOKIE_PREFIX = "__Host-" if SECURE_COOKIES else ""
 CMS_URL_PREFIX = "/cms/"
 LEGACY_CMS_DATABASE = os.environ.get("LEGACY_CMS_DATABASE", str(BASE_DIR / "legacy_cms.sqlite3"))
 
@@ -89,14 +108,17 @@ DATABASES = {
     "legacy_cms": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": LEGACY_CMS_DATABASE,
+        # Build the test copy from the models: migrating it runs Wagtail's data migrations,
+        # which reach the default database and fail on its half-built content types.
+        "TEST": {"MIGRATE": False},
     },
 }
 
 # Distinct from shop-web's names: browsers share cookies across ports on one host.
-SESSION_COOKIE_NAME = "shopapi_sessionid"
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
-CSRF_COOKIE_NAME = "shopapi_csrftoken"
-CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "0") == "1"
+SESSION_COOKIE_NAME = f"{COOKIE_PREFIX}shopapi_sessionid"
+SESSION_COOKIE_SECURE = SECURE_COOKIES
+CSRF_COOKIE_NAME = f"{COOKIE_PREFIX}shopapi_csrftoken"
+CSRF_COOKIE_SECURE = SECURE_COOKIES
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -125,10 +147,10 @@ WAGTAILDOCS_SERVE_METHOD = "direct"
 WAGTAILDOCS_EXTENSIONS = ["csv", "docx", "key", "odt", "pdf", "pptx", "rtf", "txt", "xlsx", "zip"]
 
 REST_FRAMEWORK = {
+    # Token only, so logging out (which deletes the token) ends API access at once. A cookie session
+    # signed in at /admin/ or /cms/ is not accepted here, which also keeps CSRF off the API.
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
-        # Lets you use the browsable API after logging in at /admin/.
-        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
@@ -136,4 +158,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "store.pagination.StandardPagination",
     "PAGE_SIZE": 12,
     "DEFAULT_THROTTLE_RATES": {"sso": "30/min"},
+    # Trusted proxies in front of shop-api. With 0, throttles key on REMOTE_ADDR and ignore
+    # X-Forwarded-For, which any client can set. Behind N proxies that append to it, set N.
+    "NUM_PROXIES": int(os.environ.get("DJANGO_NUM_PROXIES", "0")),
 }

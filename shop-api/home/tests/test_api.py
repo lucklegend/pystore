@@ -5,10 +5,8 @@ import tempfile
 
 from django.conf import settings
 from django.test import TestCase, override_settings
-from django.urls import include, path
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
-from wagtail import urls as wagtail_urls
 from wagtail.contrib.redirects.models import Redirect
 from wagtail.images.models import Image
 from wagtail.images.tests.utils import get_test_image_file
@@ -16,9 +14,6 @@ from wagtail.models import Page, PageViewRestriction, Site
 
 from home.models import HomePage, StandardPage
 from home.views import NavigationView, ResolvePageView
-
-# Wagtail builds page URLs by reversing its `wagtail_serve` route, which this test URLconf provides.
-urlpatterns = [path("", include(wagtail_urls))]
 
 factory = APIRequestFactory()
 
@@ -32,7 +27,6 @@ def navigation():
     return NavigationView.as_view()(factory.get("/api/cms/navigation/"))
 
 
-@override_settings(ROOT_URLCONF=__name__)
 class CmsApiTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):

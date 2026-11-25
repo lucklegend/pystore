@@ -1,6 +1,7 @@
 """Read-only CMS content for the storefront. shop-api serves no pages itself; shop-web renders these."""
+from django.conf import settings
 from django.db.models import F
-from django.http import Http404
+from django.http import Http404, HttpRequest, HttpResponseRedirect
 from rest_framework import permissions, status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -30,6 +31,15 @@ def redirect_response(site: Site, path: str) -> Response:
     if redirect is None or redirect.link is None:
         raise NotFound()
     return Response({"kind": "redirect", "location": redirect.link, "permanent": redirect.is_permanent})
+
+
+def storefront_redirect(request: HttpRequest, path: str) -> HttpResponseRedirect:
+    """Wagtail's `wagtail_serve` target: the page at `path` lives on the storefront, so send the browser there.
+
+    `path` is only ever slash-terminated `\\w`/`-` segments (see the route in config/urls.py), so the
+    Location always stays under STOREFRONT_URL.
+    """
+    return HttpResponseRedirect(f"{settings.STOREFRONT_URL}/{path}")
 
 
 class ResolvePageView(APIView):

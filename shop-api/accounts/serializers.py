@@ -36,3 +36,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data: dict):
         return User.objects.create_user(**validated_data)
+
+
+# Codes and states are 43-character tokens; the cap only stops oversized input reaching the hashing.
+SSO_TOKEN_MAX_LENGTH = 128
+
+
+class HandoffRequestSerializer(serializers.Serializer):
+    state = serializers.CharField(max_length=SSO_TOKEN_MAX_LENGTH)
+
+
+class HandoffRedeemSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=SSO_TOKEN_MAX_LENGTH)
+    state = serializers.CharField(max_length=SSO_TOKEN_MAX_LENGTH)

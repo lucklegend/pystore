@@ -10,7 +10,15 @@ from django.test import TestCase, override_settings
 from rest_framework.authtoken.models import Token
 
 from accounts.models import HandoffCode, LoginSession
-from accounts.services import is_cms_eligible, mint_code, redeem_code, sha256, sign_out_everywhere
+from accounts.services import (
+    SESSION_EPOCH_KEY,
+    is_cms_eligible,
+    mint_code,
+    redeem_code,
+    sha256,
+    sign_out_epoch,
+    sign_out_everywhere,
+)
 from config.fixture_secrets import USER_PASSWORD
 from store.tests.factories import make_user
 
@@ -174,6 +182,16 @@ class SignOutEverywhereTests(TestCase):
         self.assertEqual(list(Session.objects.values_list("session_key", flat=True)), [other_key])
         self.assertTrue(Token.objects.filter(user=other).exists())
 
+    def test_bumps_only_the_users_epoch(self):
+        user, other = make_user(), make_user()
+        self.assertEqual(sign_out_epoch(user), 0)
+
+        sign_out_everywhere(user)
+        sign_out_everywhere(user)
+
+        self.assertEqual(sign_out_epoch(user), 2)
+        self.assertEqual(sign_out_epoch(other), 0)
+
 
 class LoginSessionSignalTests(TestCase):
     def test_login_records_the_session_and_logout_forgets_it(self):
@@ -181,10 +199,19 @@ class LoginSessionSignalTests(TestCase):
         self.client.force_login(user)
         self.assertEqual(LoginSession.objects.get().session_key, self.client.session.session_key)
         self.assertEqual(LoginSession.objects.get().user, user)
+        self.assertEqual(self.client.session[SESSION_EPOCH_KEY], 0)
 
         self.client.logout()
 
         self.assertFalse(LoginSession.objects.exists())
+
+    def test_login_copies_the_current_epoch_into_the_session(self):
+        user = make_user()
+        sign_out_everywhere(user)
+
+        self.client.force_login(user)
+
+        self.assertEqual(self.client.session[SESSION_EPOCH_KEY], 1)
 
 
 class ModeratorsSyncTests(TestCase):

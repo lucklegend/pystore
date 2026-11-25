@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.http import HttpRequest
 
 from .models import LoginSession
+from .services import SESSION_EPOCH_KEY, sign_out_epoch
 
 # Wagtail's default group: CMS access plus add, change, publish and lock on pages.
 MODERATORS_GROUP = "Moderators"
@@ -10,6 +11,7 @@ MODERATORS_GROUP = "Moderators"
 
 def record_login_session(sender, request: HttpRequest, user: AbstractUser, **kwargs) -> None:
     """Remember the session a user signed in with, so sign_out_everywhere can end it."""
+    request.session[SESSION_EPOCH_KEY] = sign_out_epoch(user)
     # Signing in again inside the same session keeps its key, so the row may already exist.
     LoginSession.objects.update_or_create(session_key=request.session.session_key, defaults={"user": user})
 

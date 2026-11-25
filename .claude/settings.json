@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe -m pip check)",
+      "Bash(.venv/Scripts/python.exe manage.py test)",
+      "Bash(.venv/Scripts/python.exe manage.py makemigrations accounts --name sign_out_epoch)",
+      "Bash(.venv/Scripts/python.exe manage.py test config accounts store home.tests.test_api home.tests.test_models)"
+    ]
+  }
+}

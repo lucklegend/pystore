@@ -1,11 +1,22 @@
+import hmac
+
+from django.conf import settings
 from rest_framework import permissions, status
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.serializers import AuthTokenSerializer
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from .serializers import RegisterSerializer, UserSerializer
+from .models import HandoffCode
+from .serializers import HandoffRedeemSerializer, HandoffRequestSerializer, RegisterSerializer, UserSerializer
+from .services import mint_code, redeem_code, sign_out_everywhere
+
+# One message for every unusable code, so a caller cannot tell unknown, expired, used and mismatched apart.
+INVALID_HANDOFF = "This sign-in code is invalid or has expired."
 
 
 def token_response(user, status_code: int) -> Response:
@@ -36,8 +47,47 @@ class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request: Request) -> Response:
-        Token.objects.filter(user=request.user).delete()
+        sign_out_everywhere(request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class HandoffView(APIView):
+    """The storefront, as issuer, mints a code that signs its logged-in user into the CMS."""
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        serializer = HandoffRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ttl = settings.SSO_CODE_TTL_SECONDS
+        # mint_code raises Django's PermissionDenied for a user who may not use the CMS; DRF answers it with 403.
+        code = mint_code(request.user, HandoffCode.Audience.CMS, serializer.validated_data["state"], ttl=ttl)
+        return Response({"code": code, "expires_in": ttl}, status=status.HTTP_201_CREATED)
+
+
+class HandoffRedeemView(APIView):
+    """The storefront, as consumer, trades a code from the CMS for the user's token, server to server."""
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "sso"
+
+    def post(self, request: Request) -> Response:
+        presented = request.headers.get("X-SSO-Client-Secret", "").encode()
+        expected = settings.SSO_CLIENT_SECRET.encode()
+        # An empty configured secret must not let an empty header through.
+        if not expected or not hmac.compare_digest(presented, expected):
+            raise PermissionDenied
+        serializer = HandoffRedeemSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = redeem_code(
+            serializer.validated_data["code"], HandoffCode.Audience.STOREFRONT, serializer.validated_data["state"]
+        )
+        if user is None:
+            return Response({"detail": INVALID_HANDOFF}, status=status.HTTP_400_BAD_REQUEST)
+        return token_response(user, status.HTTP_200_OK)
 
 
 class MeView(APIView):
