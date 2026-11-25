@@ -1,8 +1,10 @@
+from unittest.mock import create_autospec
+
 from django.core.cache import cache
 from django.test import override_settings
 
 from home.cms import EMPTY_NAVIGATION, navigation, resolve_page
-from storefront.api import ApiError
+from storefront.api import ApiError, ShopApi
 from storefront.tests.helpers import StorefrontTestCase, page, product
 
 
@@ -125,6 +127,42 @@ class CmsPageOutcomeTests(StorefrontTestCase):
 
         self.assertContains(response, "Page not found", status_code=404)
         self.assertIn("blog.BlogPage", logs.output[0])
+
+
+class RevokedTokenTests(StorefrontTestCase):
+    """A visitor whose token shop-api has revoked (say, signed out of the CMS elsewhere) still gets public content."""
+
+    def setUp(self):
+        super().setUp()
+        self.token_api = create_autospec(ShopApi, instance=True)
+        revoked = ApiError(401, {"detail": "Invalid token."})
+        self.token_api.get_cms_page.side_effect = revoked
+        self.token_api.get_cms_navigation.side_effect = revoked
+        self.token_api.list_products.side_effect = revoked
+        self.api_class.side_effect = lambda url, *, token, timeout: self.token_api if token else self.api
+        self.log_in(token="revoked-token")
+
+    def test_public_page_and_menu_render_instead_of_the_login_redirect(self):
+        self.api.get_cms_page.return_value = standard_page()
+        self.api.get_cms_navigation.return_value = {
+            "home_url": "/welcome/",
+            "items": [{"id": 4, "title": "About us", "url": "/about/"}],
+        }
+
+        response = self.client.get("/about/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<h1>About us</h1>", html=True)
+        self.assertContains(response, '<a class="brand" href="/welcome/">')
+        self.assertContains(response, '<a href="/about/">About us</a>')
+
+    def test_home_page_products_come_from_the_public_client(self):
+        self.api.get_cms_page.return_value = home_page(featured_count=1)
+        self.api.list_products.return_value = page([product(1, name="Sencha")])
+
+        response = self.client.get("/")
+
+        self.assertContains(response, "Sencha")
 
 
 class CmsCacheTests(StorefrontTestCase):

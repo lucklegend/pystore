@@ -255,21 +255,35 @@ class HandoffRedeemTests(APITestCase):
         self.assertIn("state", response.data)
         self.assertIsNone(HandoffCode.objects.get().used_at)
 
-    def test_is_throttled(self):
+    def allowed_per_window(self) -> int:
         allowed, _ = ScopedRateThrottle().parse_rate(settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["sso"])
-        for _ in range(allowed):
+        return allowed
+
+    def test_callers_without_the_secret_are_throttled(self):
+        for _ in range(self.allowed_per_window()):
             self.redeem(secret="not-the-secret")
 
-        self.assertEqual(self.redeem().status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(self.redeem(secret="not-the-secret").status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_spoofed_forwarded_for_does_not_reset_the_throttle(self):
-        allowed, _ = ScopedRateThrottle().parse_rate(settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["sso"])
-        for n in range(allowed):
+        for n in range(self.allowed_per_window()):
             self.redeem(secret="not-the-secret", HTTP_X_FORWARDED_FOR=f"198.51.100.{n}")
 
-        response = self.redeem(HTTP_X_FORWARDED_FOR="203.0.113.1")
+        response = self.redeem(secret="not-the-secret", HTTP_X_FORWARDED_FOR="203.0.113.1")
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_the_storefront_is_not_throttled_however_many_users_sign_in(self):
+        for _ in range(self.allowed_per_window()):
+            self.assertEqual(self.redeem(code="no-such-code").status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertEqual(self.redeem().status_code, status.HTTP_200_OK)
+
+    def test_guessers_sharing_the_storefront_address_cannot_lock_it_out(self):
+        for _ in range(self.allowed_per_window()):
+            self.redeem(secret="not-the-secret")
+
+        self.assertEqual(self.redeem().status_code, status.HTTP_200_OK)
 
 
 class MeTests(APITestCase):

@@ -1,16 +1,14 @@
-"""Keeps all but active staff and superusers out of the CMS; ends CMS and admin sessions signed out elsewhere."""
+"""Keeps all but active staff and superusers out of the CMS; ends any session signed out elsewhere."""
 import re
 from typing import Callable
 
 from django.conf import settings
-from django.contrib import admin, messages
+from django.contrib import messages
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.views import redirect_to_login
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
-from django.urls import reverse
 
 from .cms_views import SILENT_TRIED_KEY
 from .services import SESSION_EPOCH_KEY, is_cms_eligible
@@ -44,10 +42,12 @@ def signed_out_since_login(request: HttpRequest, user: AbstractUser) -> bool:
 
 
 class CmsStaffOnlyMiddleware:
-    """Sign out, on any CMS request, a user who may no longer use the CMS or who signed out everywhere since.
+    """End, on every request, a session whose user signed out everywhere since it signed in.
 
-    Exempt CMS routes get the sign-out-everywhere check only, and then run for the signed-out visitor.
-    Django admin requests get the sign-out-everywhere check only; the admin enforces is_staff itself.
+    Outside the CMS (the admin, wagtaildocs' /documents/, anything else that reads the session) and on
+    exempt CMS routes, the view then runs for the signed-out visitor, so the admin and private document
+    collections send them to their own login pages. On the rest of the CMS, a user who may no longer
+    use it is also signed out, and either kind is sent to the CMS login page.
     """
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]):
@@ -55,13 +55,14 @@ class CmsStaffOnlyMiddleware:
         self.prefix = settings.CMS_URL_PREFIX
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        path = request.path_info
-        if not (path.startswith(self.prefix) and request.user.is_authenticated):
+        if not request.user.is_authenticated:
             return self.get_response(request)
         user = fresh_user(request.user.pk)
-        if EXEMPT_ROUTES.fullmatch(path.removeprefix(self.prefix)):
-            # Still checked: sso/authorize would otherwise mint a storefront code for a revoked session.
-            # Signed out here, the view answers as for any anonymous visitor.
+        path = request.path_info
+        gated = path.startswith(self.prefix) and not EXEMPT_ROUTES.fullmatch(path.removeprefix(self.prefix))
+        if not gated:
+            # Exempt CMS routes are checked too: sso/authorize would otherwise mint a storefront
+            # code for a revoked session.
             if user is None or signed_out_since_login(request, user):
                 logout(request)
             return self.get_response(request)
@@ -76,20 +77,3 @@ class CmsStaffOnlyMiddleware:
             logout(request)
             return redirect(f"{self.prefix}login/")
         return self.get_response(request)
-
-    def process_view(
-        self,
-        request: HttpRequest,
-        view_func: Callable[..., HttpResponse],
-        view_args: tuple[object, ...],
-        view_kwargs: dict[str, object],
-    ) -> HttpResponse | None:
-        """For any view in the admin site's namespace, including its catch-all 404, end a session signed out since."""
-        match = request.resolver_match
-        if match is None or match.namespace != admin.site.name or not request.user.is_authenticated:
-            return None
-        user = fresh_user(request.user.pk)
-        if user is not None and not signed_out_since_login(request, user):
-            return None
-        logout(request)
-        return redirect_to_login(request.get_full_path(), reverse(f"{admin.site.name}:login"))

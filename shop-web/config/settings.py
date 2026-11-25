@@ -38,6 +38,10 @@ if not DEBUG:
 # Path=/ and no Domain, which are the defaults and are left alone.
 SECURE_COOKIES = os.environ.get("DJANGO_SECURE_COOKIES", "0") == "1"
 COOKIE_PREFIX = "__Host-" if SECURE_COOKIES else ""
+# Earlier releases read these two instead. Ignoring them would quietly drop Secure on upgrade.
+for _name in ("SESSION_COOKIE_SECURE", "CSRF_COOKIE_SECURE"):
+    if _name in os.environ and "DJANGO_SECURE_COOKIES" not in os.environ:
+        raise ImproperlyConfigured(f"{_name} is no longer read. Set DJANGO_SECURE_COOKIES instead, and unset {_name}.")
 
 INSTALLED_APPS = [
     "home",

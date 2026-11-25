@@ -149,6 +149,21 @@ class CmsStaffOnlyMiddlewareTests(TestCase):
         self.assertFalse(request.user.is_authenticated)
         self.assertNotIn("_auth_user_id", request.session)
 
+    def test_signing_out_everywhere_ends_a_rotated_session_outside_the_cms(self):
+        user = make_user(is_staff=True)
+        for path in ("/documents/1/report.pdf", "/admin/", "/"):
+            with self.subTest(path):
+                request = self.request("/cms/", user)
+                update_session_auth_hash(request, user)  # rotated, so sign_out_everywhere cannot delete it
+                rotated = self.next_request(path, request)
+                sign_out_everywhere(user)
+
+                response = self.middleware(rotated)
+
+                self.assertIs(response, PASSED)  # the view decides what an anonymous visitor gets
+                self.assertFalse(rotated.user.is_authenticated)
+                self.assertNotIn("_auth_user_id", rotated.session)
+
     def test_exempt_routes_let_a_customer_through(self):
         user = make_user()
         for path in (

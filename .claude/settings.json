@@ -4,7 +4,8 @@
       "Bash(.venv/Scripts/python.exe -m pip check)",
       "Bash(.venv/Scripts/python.exe manage.py test)",
       "Bash(.venv/Scripts/python.exe manage.py makemigrations accounts --name sign_out_epoch)",
-      "Bash(.venv/Scripts/python.exe manage.py test config accounts store home.tests.test_api home.tests.test_models)"
+      "Bash(.venv/Scripts/python.exe manage.py test config accounts store home.tests.test_api home.tests.test_models)",
+      "PowerShell(Set-Location C:\\\\JanFiles\\\\Application\\\\offsure\\\\shop-web; $env:SESSION_COOKIE_SECURE = \"1\"; ..\\\\shop-api\\\\.venv\\\\Scripts\\\\python.exe manage.py check 2>&1 | Select-String 'ImproperlyConfigured'; $env:DJANGO_SECURE_COOKIES = \"1\"; ..\\\\shop-api\\\\.venv\\\\Scripts\\\\python.exe manage.py check 2>&1 | Select-String 'issues')"
     ]
   }
 }

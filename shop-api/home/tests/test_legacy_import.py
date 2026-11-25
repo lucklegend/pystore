@@ -17,7 +17,7 @@ from wagtail.images import get_image_model
 from wagtail.models import Collection, Page, PageLogEntry, PageViewRestriction, Revision, Site
 from wagtail.utils.file import hash_filelike
 
-from home.legacy_import import LegacyImportError, require_source_file
+from home.legacy_import import LegacyImportError, remove_copied_files, require_source_file
 from home.models import HomePage, StandardPage
 from store.tests.factories import make_user
 
@@ -242,3 +242,28 @@ class RequireSourceFileTests(SimpleTestCase):
             present.touch()
 
             require_source_file(self.sqlite_connection(present))
+
+
+class LockedFileStorage:
+    """Deletes every name except `locked`, which raises as a file held open on Windows does."""
+
+    def __init__(self, locked: str):
+        self.locked = locked
+        self.deleted: list[str] = []
+
+    def delete(self, name: str) -> None:
+        if name == self.locked:
+            raise PermissionError(13, "The process cannot access the file", name)
+        self.deleted.append(name)
+
+
+class RemoveCopiedFilesTests(SimpleTestCase):
+    def test_a_file_that_will_not_delete_is_reported_and_the_rest_are_still_removed(self):
+        storage = LockedFileStorage(locked="images/a.png")
+        out = StringIO()
+
+        remove_copied_files(storage, ["images/a.png", "images/b.png", "documents/c.txt"], out)
+
+        self.assertEqual(storage.deleted, ["images/b.png", "documents/c.txt"])
+        self.assertIn("Could not remove the copied file images/a.png", out.getvalue())
+        self.assertIn("Removed the copied file documents/c.txt", out.getvalue())

@@ -363,6 +363,20 @@ def verify(rows: list[Row], target: str, storage: Storage, out: TextIOBase) -> l
     return problems
 
 
+def remove_copied_files(storage: Storage, names: list[str], out: TextIOBase) -> None:
+    """Delete every copied file it can, reporting the ones it cannot.
+
+    Runs while an import's own error is propagating, so it must not raise in its place.
+    """
+    for name in names:
+        try:
+            storage.delete(name)
+        except OSError as error:
+            out.write(f"Could not remove the copied file {name}, remove it by hand: {error}\n")
+        else:
+            out.write(f"Removed the copied file {name}\n")
+
+
 def import_legacy_cms(
     *,
     source: str,
@@ -411,7 +425,5 @@ def import_legacy_cms(
         committed = not dry_run
     finally:
         if not committed:
-            for name in saved_files:
-                storage.delete(name)
-                out.write(f"Removed the copied file {name}\n")
+            remove_copied_files(storage, saved_files, out)
     out.write("Dry run: rolled back, nothing was written.\n" if dry_run else f"Imported {len(rows)} rows.\n")

@@ -43,7 +43,7 @@ RENDERERS = {
 
 
 def cms_page(request: HttpRequest, path: str) -> HttpResponse:
-    payload = resolve_page(request.shop_api, cache, f"/{path}", settings.CMS_CACHE_SECONDS)
+    payload = resolve_page(request.public_api, cache, f"/{path}", settings.CMS_CACHE_SECONDS)
     if payload["kind"] == "redirect":
         response_class = HttpResponsePermanentRedirect if payload["permanent"] else HttpResponseRedirect
         return response_class(payload["location"])
@@ -53,5 +53,5 @@ def cms_page(request: HttpRequest, path: str) -> HttpResponse:
     if renderer is None:
         logger.warning("No renderer for CMS page type %r at %s", page["type"], page["url"])
         raise Http404("Unknown page type.")
-    context = {"page": page, **renderer.build_context(request.shop_api, page)}
+    context = {"page": page, **renderer.build_context(request.public_api, page)}
     return render(request, renderer.template, context)

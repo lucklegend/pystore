@@ -19,6 +19,32 @@ from .services import mint_code, redeem_code, sign_out_everywhere
 INVALID_HANDOFF = "This sign-in code is invalid or has expired."
 
 
+def has_client_secret(request: Request) -> bool:
+    """True when the caller presents shop-web's SSO client secret."""
+    presented = request.headers.get("X-SSO-Client-Secret", "").encode()
+    expected = settings.SSO_CLIENT_SECRET.encode()
+    # An empty configured secret must not let an empty header through.
+    return bool(expected) and hmac.compare_digest(presented, expected)
+
+
+class UnverifiedCallerThrottle:
+    """Rate-limit, per client IP, only callers without the client secret.
+
+    shop-web redeems every user's code from its one address, so throttling it by IP would cap
+    sign-ins site-wide and let anyone sharing that address use the allowance up. Guessing the
+    secret is what the limit is for; a caller holding it is trusted with codes anyway.
+    """
+
+    def __init__(self) -> None:
+        self.by_ip = ScopedRateThrottle()
+
+    def allow_request(self, request: Request, view: APIView) -> bool:
+        return has_client_secret(request) or self.by_ip.allow_request(request, view)
+
+    def wait(self) -> float | None:
+        return self.by_ip.wait()
+
+
 def token_response(user, status_code: int) -> Response:
     token, _ = Token.objects.get_or_create(user=user)
     return Response({"token": token.key, "user": UserSerializer(user).data}, status=status_code)
@@ -71,14 +97,11 @@ class HandoffRedeemView(APIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [UnverifiedCallerThrottle]
     throttle_scope = "sso"
 
     def post(self, request: Request) -> Response:
-        presented = request.headers.get("X-SSO-Client-Secret", "").encode()
-        expected = settings.SSO_CLIENT_SECRET.encode()
-        # An empty configured secret must not let an empty header through.
-        if not expected or not hmac.compare_digest(presented, expected):
+        if not has_client_secret(request):
             raise PermissionDenied
         serializer = HandoffRedeemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

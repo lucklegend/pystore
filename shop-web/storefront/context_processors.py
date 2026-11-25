@@ -8,7 +8,7 @@ from .cart import Cart
 
 
 def shop(request: HttpRequest) -> dict:
-    api = getattr(request, "shop_api", None)
+    api = getattr(request, "public_api", None)
     menu = navigation(api, cache, settings.CMS_CACHE_SECONDS) if api else EMPTY_NAVIGATION
     return {
         "shop_user": getattr(request, "shop_user", None),
