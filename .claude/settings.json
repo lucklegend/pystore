@@ -12,7 +12,10 @@
       "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py shell 2>&1)",
       "Bash(curl -s -i \"http://127.0.0.1:8000/api/cms/pages/resolve/?path=/\")",
       "Bash(.venv/Scripts/python.exe manage.py showmigrations home)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8080/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8080/)",
+      "Bash(.venv/Scripts/python.exe manage.py bootstrap_site)",
+      "Bash(curl -s \"http://127.0.0.1:8001/api/cms/pages/resolve/?path=/\")",
+      "Bash(curl -s -o /dev/null -w \"storefront: %{http_code}\\\\n\" http://127.0.0.1:8080/)"
     ]
   }
 }
