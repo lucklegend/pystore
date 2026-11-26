@@ -9,7 +9,10 @@
       "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py migrate --plan)",
       "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe -c \"import sqlite3; c=sqlite3.connect\\('db.sqlite3'\\); print\\([r[0] for r in c.execute\\(\"\"select name from sqlite_master where type='table' and name like 'accounts%'\"\"\\)]\\)\")",
       "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py migrate)",
-      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py shell 2>&1)"
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py shell 2>&1)",
+      "Bash(curl -s -i \"http://127.0.0.1:8000/api/cms/pages/resolve/?path=/\")",
+      "Bash(.venv/Scripts/python.exe manage.py showmigrations home)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8080/)"
     ]
   }
 }
