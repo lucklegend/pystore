@@ -59,7 +59,8 @@ class ResolvePageView(APIView):
             return redirect_response(site, path)
 
         # Private pages are out of scope: the storefront has no way to check a view restriction.
-        if page.get_view_restrictions().exists():
+        # So is a page type the storefront cannot render, such as Wagtail's plain placeholder Page.
+        if page._meta.label not in PAGE_FIELDS or page.get_view_restrictions().exists():
             raise NotFound()
         return Response({"kind": "page", "page": page_payload(page, PAGE_FIELDS)})
 
