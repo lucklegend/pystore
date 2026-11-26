@@ -93,6 +93,15 @@ class ShopSessionTests(SimpleTestCase):
         self.assertIsNone(current_user(self.session))
         self.assertEqual(self.session["unrelated"], "keep me")
 
+    def test_sign_out_empties_the_cart(self):
+        sign_in(self.session, "tok", {"username": "alice"})
+        Cart(self.session).add(5, 2)
+
+        sign_out(self.session)
+
+        self.assertNotIn(CART_KEY, self.session)
+        self.assertEqual(Cart(self.session).count, 0)
+
     def test_sign_out_when_not_signed_in_is_harmless(self):
         sign_out(self.session)
 

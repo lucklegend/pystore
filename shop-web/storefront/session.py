@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from django.contrib.sessions.backends.base import SessionBase
 
+from .cart import CART_KEY
+
 TOKEN_KEY = "shop_token"
 USER_KEY = "shop_user"
 
@@ -21,9 +23,11 @@ def sign_in(session: SessionBase, token: str, user: dict) -> None:
 
 
 def sign_out(session: SessionBase) -> None:
-    # Pop only the login keys, so the cart survives a logout.
+    # The cart goes with the login, so the next person at this browser starts empty.
+    # Other session keys are left alone.
     session.pop(TOKEN_KEY, None)
     session.pop(USER_KEY, None)
+    session.pop(CART_KEY, None)
     session.cycle_key()
 
 
