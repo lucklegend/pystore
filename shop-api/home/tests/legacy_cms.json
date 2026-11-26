@@ -1,0 +1,66 @@
+[
+  {"model": "auth.user", "pk": 5, "fields": {
+    "password": "!", "username": "editor", "date_joined": "2026-01-05T09:00:00Z"}},
+  {"model": "auth.user", "pk": 6, "fields": {
+    "password": "!", "username": "ghost", "date_joined": "2026-01-05T09:00:00Z"}},
+
+  {"model": "wagtailcore.locale", "pk": 1, "fields": {"language_code": "en"}},
+  {"model": "wagtailcore.collection", "pk": 1, "fields": {
+    "path": "0001", "depth": 1, "numchild": 1, "name": "Root"}},
+  {"model": "wagtailcore.collection", "pk": 2, "fields": {
+    "path": "00010001", "depth": 2, "numchild": 0, "name": "Photos"}},
+
+  {"model": "wagtailcore.revision", "pk": 1, "fields": {
+    "content_type": ["home", "homepage"], "base_content_type": ["wagtailcore", "page"], "object_id": "3",
+    "created_at": "2026-01-05T10:00:00Z", "user": ["editor"], "object_str": "Home",
+    "content": {"pk": 3, "title": "Home", "hero_title": "Hello from the old CMS"}}},
+
+  {"model": "wagtailcore.page", "pk": 1, "fields": {
+    "path": "0001", "depth": 1, "numchild": 1, "translation_key": "6a1f9a3e-6c55-4a7a-9d0e-1f3b2b1c0001",
+    "locale": 1, "live": true, "title": "Root", "draft_title": "Root", "slug": "root",
+    "content_type": ["wagtailcore", "page"], "url_path": "/"}},
+  {"model": "wagtailcore.page", "pk": 3, "fields": {
+    "path": "00010001", "depth": 2, "numchild": 1, "translation_key": "6a1f9a3e-6c55-4a7a-9d0e-1f3b2b1c0003",
+    "locale": 1, "latest_revision": 1, "live_revision": 1, "live": true,
+    "first_published_at": "2026-01-05T10:00:00Z", "last_published_at": "2026-01-05T10:00:00Z",
+    "latest_revision_created_at": "2026-01-05T10:00:00Z",
+    "title": "Home", "draft_title": "Home", "slug": "home", "content_type": ["home", "homepage"],
+    "url_path": "/home/", "owner": ["editor"]}},
+  {"model": "home.homepage", "pk": 3, "fields": {
+    "hero_title": "Hello from the old CMS",
+    "intro": "<p>Read <a linktype=\"page\" id=\"4\">about us</a>.</p><embed embedtype=\"image\" id=\"1\" format=\"fullwidth\" alt=\"Logo\"/>",
+    "featured_count": 3}},
+  {"model": "wagtailcore.page", "pk": 4, "fields": {
+    "path": "000100010001", "depth": 3, "numchild": 0, "translation_key": "6a1f9a3e-6c55-4a7a-9d0e-1f3b2b1c0004",
+    "locale": 1, "live": true, "show_in_menus": true,
+    "title": "About", "draft_title": "About", "slug": "about", "content_type": ["home", "standardpage"],
+    "url_path": "/home/about/"}},
+  {"model": "home.standardpage", "pk": 4, "fields": {
+    "body": "<p>Our <a linktype=\"document\" id=\"1\">terms of sale</a>.</p>"}},
+
+  {"model": "wagtailcore.site", "pk": 2, "fields": {
+    "hostname": "localhost", "port": 80, "site_name": "", "root_page": 3, "is_default_site": true}},
+
+  {"model": "wagtailcore.pagelogentry", "pk": 1, "fields": {
+    "content_type": ["home", "homepage"], "label": "Home", "action": "wagtail.publish", "data": {},
+    "timestamp": "2026-01-05T10:00:00Z", "user": 99, "page": 3, "revision": 1}},
+  {"model": "wagtailcore.pagelogentry", "pk": 2, "fields": {
+    "content_type": ["home", "standardpage"], "label": "About", "action": "wagtail.create", "data": {},
+    "timestamp": "2026-01-05T10:05:00Z", "user": ["editor"], "page": 4}},
+
+  {"model": "wagtailimages.image", "pk": 1, "fields": {
+    "title": "Logo", "file": "original_images/logo.png", "width": 10, "height": 10,
+    "created_at": "2026-01-05T10:00:00Z", "uploaded_by_user": ["editor"], "collection": 2,
+    "file_size": 17, "file_hash": "ba86d598cec4edeb904e907455189dfd78b3a97c"}},
+  {"model": "wagtaildocs.document", "pk": 1, "fields": {
+    "title": "Terms of sale", "file": "documents/terms.txt", "created_at": "2026-01-05T10:00:00Z",
+    "uploaded_by_user": ["ghost"], "collection": 1,
+    "file_size": 20, "file_hash": "69641c8d4a8cb162d7686a2beeb2c10f028c2f52"}},
+
+  {"model": "taggit.tag", "pk": 1, "fields": {"name": "brand", "slug": "brand"}},
+  {"model": "taggit.taggeditem", "pk": 1, "fields": {
+    "tag": 1, "content_type": ["wagtailimages", "image"], "object_id": 1}},
+
+  {"model": "wagtailredirects.redirect", "pk": 1, "fields": {
+    "old_path": "/about-us", "site": ["localhost", 80], "is_permanent": true, "redirect_page": 4}}
+]

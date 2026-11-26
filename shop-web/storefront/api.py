@@ -70,8 +70,9 @@ class ShopApi:
         *,
         params: Mapping[str, Any] | None = None,
         json: Any = None,
+        headers: Mapping[str, str] | None = None,
     ) -> Any:
-        headers = {"Accept": "application/json"}
+        headers = {"Accept": "application/json", **(headers or {})}
         if self.token:
             headers["Authorization"] = f"Token {self.token}"
         try:
@@ -107,6 +108,27 @@ class ShopApi:
 
     def logout(self) -> None:
         self._request("POST", "auth/logout/")
+
+    def me(self) -> dict:
+        return self._request("GET", "auth/me/")
+
+    def create_handoff(self, state: str) -> dict:
+        return self._request("POST", "auth/handoff/", json={"state": state})
+
+    def redeem_handoff(self, code: str, state: str, client_secret: str) -> dict:
+        return self._request(
+            "POST",
+            "auth/handoff/redeem/",
+            json={"code": code, "state": state},
+            headers={"X-SSO-Client-Secret": client_secret},
+        )
+
+    # CMS
+    def get_cms_page(self, path: str) -> dict:
+        return self._request("GET", "cms/pages/resolve/", params={"path": path})
+
+    def get_cms_navigation(self) -> dict:
+        return self._request("GET", "cms/navigation/")
 
     # Catalogue
     def list_categories(self) -> list[dict]:

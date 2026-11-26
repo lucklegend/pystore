@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import auth, manage, shop
+from .views import auth, manage, shop, sso
 
 app_name = "storefront"
 
@@ -8,6 +8,10 @@ urlpatterns = [
     path("account/login/", auth.login_view, name="login"),
     path("account/register/", auth.register_view, name="register"),
     path("account/logout/", auth.logout_view, name="logout"),
+    path("account/sso/begin/", sso.sso_begin, name="sso_begin"),
+    path("account/sso/authorize/", sso.sso_authorize, name="sso_authorize"),
+    path("account/sso/callback/", sso.sso_callback, name="sso_callback"),
+    path("account/sso/logout/", sso.sso_logout, name="sso_logout"),
     path("shop/", shop.product_list, name="product_list"),
     path("shop/products/<int:product_id>/", shop.product_detail, name="product_detail"),
     path("shop/cart/", shop.cart_detail, name="cart"),

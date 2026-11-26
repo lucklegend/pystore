@@ -1,4 +1,4 @@
-from django.contrib.sessions.backends.cache import SessionStore
+from django.contrib.sessions.backends.signed_cookies import SessionStore
 from django.test import SimpleTestCase
 
 from storefront.cart import CART_KEY, MAX_QUANTITY, Cart
@@ -78,25 +78,29 @@ class ShopSessionTests(SimpleTestCase):
         self.session["unrelated"] = "keep me"
         self.session.save()
 
-    def test_sign_in_stores_token_and_user_under_a_new_key(self):
-        old_key = self.session.session_key
-
+    def test_sign_in_stores_token_and_user(self):
         sign_in(self.session, "tok", {"username": "alice"})
 
         self.assertEqual(current_token(self.session), "tok")
         self.assertEqual(current_user(self.session), {"username": "alice"})
-        self.assertNotEqual(self.session.session_key, old_key)
 
     def test_sign_out_removes_only_shop_keys(self):
         sign_in(self.session, "tok", {"username": "alice"})
-        signed_in_key = self.session.session_key
 
         sign_out(self.session)
 
         self.assertIsNone(current_token(self.session))
         self.assertIsNone(current_user(self.session))
         self.assertEqual(self.session["unrelated"], "keep me")
-        self.assertNotEqual(self.session.session_key, signed_in_key)
+
+    def test_sign_out_empties_the_cart(self):
+        sign_in(self.session, "tok", {"username": "alice"})
+        Cart(self.session).add(5, 2)
+
+        sign_out(self.session)
+
+        self.assertNotIn(CART_KEY, self.session)
+        self.assertEqual(Cart(self.session).count, 0)
 
     def test_sign_out_when_not_signed_in_is_harmless(self):
         sign_out(self.session)

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% load static wagtailcore_tags %}
+{% load static %}
 {% block content %}
   <section class="hero">
-    <h1>{{ page.hero_title }}</h1>
-    {% if page.intro %}<div class="rich-text">{{ page.intro|richtext }}</div>{% endif %}
+    <h1>{{ page.fields.hero_title }}</h1>
+    {% if page.fields.intro_html %}<div class="rich-text">{{ page.fields.intro_html|safe }}</div>{% endif %}
     <a class="button" href="{% url 'storefront:product_list' %}">Browse products</a>
   </section>
 
-  {% if page.featured_count %}
+  {% if page.fields.featured_count %}
     <section>
       <h2>New arrivals</h2>
       {% if shop_unavailable %}

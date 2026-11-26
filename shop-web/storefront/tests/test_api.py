@@ -141,6 +141,17 @@ class ShopApiEndpointTests(SimpleTestCase):
                 {"username": "u", "email": "e@x.com", "password": USER_PASSWORD},
             ),
             (self.api.logout, "POST", "auth/logout/", None, None),
+            (self.api.me, "GET", "auth/me/", None, None),
+            (lambda: self.api.create_handoff("st"), "POST", "auth/handoff/", None, {"state": "st"}),
+            (
+                lambda: self.api.redeem_handoff("cd", "st", "secret"),
+                "POST",
+                "auth/handoff/redeem/",
+                None,
+                {"code": "cd", "state": "st"},
+            ),
+            (lambda: self.api.get_cms_page("/about/"), "GET", "cms/pages/resolve/", {"path": "/about/"}, None),
+            (self.api.get_cms_navigation, "GET", "cms/navigation/", None, None),
             (self.api.list_categories, "GET", "categories/", None, None),
             (lambda: self.api.list_products({"search": "tea"}), "GET", "products/", {"search": "tea"}, None),
             (lambda: self.api.get_product(4), "GET", "products/4/", None, None),
@@ -159,6 +170,34 @@ class ShopApiEndpointTests(SimpleTestCase):
                 self.assertEqual(args, (method, f"http://api.test/api/{path}"))
                 self.assertEqual(kwargs["params"], params)
                 self.assertEqual(kwargs["json"], body)
+
+    def test_redeem_handoff_sends_the_client_secret_header(self):
+        self.api.redeem_handoff("cd", "st", "s3cret")
+
+        self.assertEqual(
+            self.http.request.call_args.kwargs["headers"],
+            {"Accept": "application/json", "X-SSO-Client-Secret": "s3cret"},
+        )
+
+    def test_redeem_handoff_keeps_the_token_out_when_none_is_set(self):
+        self.api.redeem_handoff("cd", "st", "s3cret")
+
+        self.assertNotIn("Authorization", self.http.request.call_args.kwargs["headers"])
+
+    def test_extra_headers_merge_with_the_token(self):
+        api = ShopApi("http://api.test/api", token="abc", http=self.http)
+
+        api.redeem_handoff("cd", "st", "s3cret")
+
+        self.assertEqual(
+            self.http.request.call_args.kwargs["headers"],
+            {"Accept": "application/json", "X-SSO-Client-Secret": "s3cret", "Authorization": "Token abc"},
+        )
+
+    def test_other_methods_send_no_secret_header(self):
+        self.api.get_cms_navigation()
+
+        self.assertNotIn("X-SSO-Client-Secret", self.http.request.call_args.kwargs["headers"])
 
     def test_create_order_sends_cart_lines_as_items(self):
         self.api.create_order({3: 2, 8: 1})

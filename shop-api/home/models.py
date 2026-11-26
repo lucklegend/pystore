@@ -1,13 +1,12 @@
+"""CMS page types. shop-api stores and edits them; the storefront renders them over REST."""
 from django.db import models
 from wagtail.admin.panels import FieldPanel
 from wagtail.fields import RichTextField
 from wagtail.models import Page
 
-from storefront.api import ApiError
-
 
 class HomePage(Page):
-    """Editor-managed landing page that also shows the newest products from shop-api."""
+    """Editor-managed landing page. The storefront adds the newest products when it renders it."""
 
     hero_title = models.CharField(max_length=120, default="Welcome to our shop")
     intro = RichTextField(blank=True)
@@ -23,18 +22,7 @@ class HomePage(Page):
 
     max_count = 1
     subpage_types = ["home.StandardPage"]
-
-    def get_context(self, request, *args, **kwargs):
-        context = super().get_context(request, *args, **kwargs)
-        context["featured_products"] = []
-        api = getattr(request, "shop_api", None)  # absent on some Wagtail preview requests
-        if api and self.featured_count:
-            try:
-                data = api.list_products({"page_size": self.featured_count})
-                context["featured_products"] = data["results"]
-            except ApiError:
-                context["shop_unavailable"] = True
-        return context
+    preview_modes = []  # shop-api has no page templates; shop-web renders pages
 
 
 class StandardPage(Page):
@@ -45,3 +33,4 @@ class StandardPage(Page):
     content_panels = Page.content_panels + [FieldPanel("body")]
 
     parent_page_types = ["home.HomePage", "home.StandardPage"]
+    preview_modes = []  # shop-api has no page templates; shop-web renders pages

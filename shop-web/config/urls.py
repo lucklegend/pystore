@@ -1,23 +1,16 @@
 from django.conf import settings
-from django.contrib import admin
-from django.urls import include, path
-from wagtail import urls as wagtail_urls
-from wagtail.admin import urls as wagtailadmin_urls
-from wagtail.documents import urls as wagtaildocs_urls
+from django.urls import include, path, re_path
+
+from home.views import cms_page
 
 urlpatterns = [
-    path("django-admin/", admin.site.urls),
-    path("cms/", include(wagtailadmin_urls)),
-    path("documents/", include(wagtaildocs_urls)),
     path("", include("storefront.urls")),
 ]
 
 if settings.DEBUG:
-    from django.conf.urls.static import static
     from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
     urlpatterns += staticfiles_urlpatterns()
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-# Wagtail's page serving is a catch-all, so it goes last.
-urlpatterns += [path("", include(wagtail_urls))]
+# CMS pages live in shop-api. Any slash-terminated path may be one, so this goes last.
+urlpatterns += [re_path(r"^((?:[\w\-]+/)*)$", cms_page)]

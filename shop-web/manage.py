@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Django's command-line utility for the Wagtail storefront."""
+"""Django's command-line utility for the storefront."""
 import os
 import sys
 

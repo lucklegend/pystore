@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe -m pip check)",
+      "Bash(.venv/Scripts/python.exe manage.py test)",
+      "Bash(.venv/Scripts/python.exe manage.py makemigrations accounts --name sign_out_epoch)",
+      "Bash(.venv/Scripts/python.exe manage.py test config accounts store home.tests.test_api home.tests.test_models)",
+      "PowerShell(Set-Location C:\\\\JanFiles\\\\Application\\\\offsure\\\\shop-web; $env:SESSION_COOKIE_SECURE = \"1\"; ..\\\\shop-api\\\\.venv\\\\Scripts\\\\python.exe manage.py check 2>&1 | Select-String 'ImproperlyConfigured'; $env:DJANGO_SECURE_COOKIES = \"1\"; ..\\\\shop-api\\\\.venv\\\\Scripts\\\\python.exe manage.py check 2>&1 | Select-String 'issues')",
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py migrate --plan)",
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe -c \"import sqlite3; c=sqlite3.connect\\('db.sqlite3'\\); print\\([r[0] for r in c.execute\\(\"\"select name from sqlite_master where type='table' and name like 'accounts%'\"\"\\)]\\)\")",
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py migrate)",
+      "PowerShell(.\\\\.venv\\\\Scripts\\\\python.exe manage.py shell 2>&1)",
+      "Bash(curl -s -i \"http://127.0.0.1:8000/api/cms/pages/resolve/?path=/\")",
+      "Bash(.venv/Scripts/python.exe manage.py showmigrations home)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8080/)",
+      "Bash(.venv/Scripts/python.exe manage.py bootstrap_site)",
+      "Bash(curl -s \"http://127.0.0.1:8001/api/cms/pages/resolve/?path=/\")",
+      "Bash(curl -s -o /dev/null -w \"storefront: %{http_code}\\\\n\" http://127.0.0.1:8080/)",
+      "Bash(grep -v \"^\\\\s*$\")"
+    ]
+  }
+}

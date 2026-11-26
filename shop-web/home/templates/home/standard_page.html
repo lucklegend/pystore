@@ -1,8 +1,7 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags %}
 {% block content %}
   <article class="prose">
     <h1>{{ page.title }}</h1>
-    <div class="rich-text">{{ page.body|richtext }}</div>
+    <div class="rich-text">{{ page.fields.body_html|safe }}</div>
   </article>
 {% endblock %}

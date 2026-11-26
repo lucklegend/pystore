@@ -14,13 +14,20 @@ from .session import current_token, current_user, sign_out
 
 
 class ShopApiMiddleware:
-    """Attach an API client and the logged-in shop user to every request,
-    and turn API failures that views don't handle into sensible responses."""
+    """Attach API clients and the logged-in shop user to every request,
+    and turn API failures that views don't handle into sensible responses.
+
+    `request.public_api` sends no token, for public content such as CMS pages and navigation:
+    shop-api answers a revoked token with 401 even where no sign-in is needed, which would
+    otherwise empty the menu and send the visitor of a public page to the login form.
+    `request.shop_api` acts as the logged-in user.
+    """
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]):
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
+        request.public_api = ShopApi(settings.SHOP_API_URL, token=None, timeout=settings.SHOP_API_TIMEOUT)
         request.shop_api = ShopApi(
             settings.SHOP_API_URL,
             token=current_token(request.session),

@@ -120,3 +120,40 @@ class ContextProcessorTests(StorefrontTestCase):
         self.assertEqual(response.context["shop_user"], CUSTOMER)
         self.assertEqual(response.context["cart_count"], 5)
         self.assertContains(response, "Hi, alice")
+
+    def test_nav_renders_from_the_api(self):
+        self.api.get_cms_navigation.return_value = {
+            "home_url": "/welcome/",
+            "items": [{"id": 4, "title": "About us", "url": "/about/"}],
+        }
+
+        response = self.client.get("/shop/cart/")
+
+        self.assertContains(response, '<a class="brand" href="/welcome/">')
+        self.assertContains(response, '<a href="/about/">About us</a>')
+
+    def test_nav_failure_still_renders_the_page(self):
+        self.api.get_cms_navigation.side_effect = ApiError(503, {"detail": "down"})
+
+        response = self.client.get("/shop/cart/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<a class="brand" href="/">')
+
+    @override_settings(SHOP_API_PUBLIC_URL="http://api.test")
+    def test_cms_link_is_for_staff_only(self):
+        cms_link = '<a href="http://api.test/cms/">CMS</a>'
+        cases = [(None, False), (CUSTOMER, False), (STAFF, True)]
+        for user, expected in cases:
+            with self.subTest(user=user):
+                if user:
+                    self.log_in(user)
+                else:
+                    self.log_out()
+
+                response = self.client.get("/shop/cart/")
+
+                if expected:
+                    self.assertContains(response, cms_link)
+                else:
+                    self.assertNotContains(response, cms_link)
