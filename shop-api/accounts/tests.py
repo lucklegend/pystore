@@ -45,7 +45,8 @@ class RegisterTests(APITestCase):
         self.assertFalse(user.is_staff)
         self.assertEqual(response.data["token"], Token.objects.get(user=user).key)
         self.assertEqual(
-            response.data["user"], {"id": user.pk, "username": "alice", "email": "alice@example.com", "is_staff": False}
+            response.data["user"],
+            {"id": user.pk, "username": "alice", "email": "alice@example.com", "full_name": "", "is_staff": False},
         )
         self.assertNotIn("password", response.data["user"])
 
@@ -293,7 +294,18 @@ class MeTests(APITestCase):
 
         response = self.client.get(ME)
 
-        self.assertEqual(response.data, {"id": user.pk, "username": "alice", "email": "a@example.com", "is_staff": True})
+        self.assertEqual(
+            response.data,
+            {"id": user.pk, "username": "alice", "email": "a@example.com", "full_name": "", "is_staff": True},
+        )
+
+    def test_includes_the_full_name_when_one_is_set(self):
+        user = User.objects.create_user(username="alice", first_name="Alice", last_name="Reyes")
+        self.client.force_authenticate(user)
+
+        response = self.client.get(ME)
+
+        self.assertEqual(response.data["full_name"], "Alice Reyes")
 
     def test_requires_authentication(self):
         self.assertEqual(self.client.get(ME).status_code, status.HTTP_401_UNAUTHORIZED)

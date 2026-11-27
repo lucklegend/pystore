@@ -1,0 +1,30 @@
+{% if form.non_field_errors %}
+  <ul class="messages">{% for error in form.non_field_errors %}<li class="message error">{{ error }}</li>{% endfor %}</ul>
+{% endif %}
+<fieldset class="field label-choice{% if form.label.errors or form.custom_label.errors %} has-error{% endif %}">
+  <legend>Label</legend>
+  <div class="label-options">
+    {% for radio in form.label %}
+      <label for="{{ radio.id_for_label }}">{{ radio.tag }} {{ radio.choice_label }}</label>
+    {% endfor %}
+  </div>
+  <div class="custom-label">
+    {{ form.custom_label.label_tag }}
+    {{ form.custom_label }}
+    <p id="custom-label-hint" class="muted small">Only used when you pick Other, for example Mom's house.</p>
+  </div>
+  {% for error in form.label.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  {% for error in form.custom_label.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+</fieldset>
+{% for field in form %}
+  {% if field.name != "label" and field.name != "custom_label" %}
+    <div class="field{% if field.field.widget.input_type == 'checkbox' %} checkbox{% endif %}{% if field.errors %} has-error{% endif %}">
+      {% if field.field.widget.input_type == 'checkbox' %}
+        {{ field }} {{ field.label_tag }}
+      {% else %}
+        {{ field.label_tag }} {{ field }}
+      {% endif %}
+      {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}

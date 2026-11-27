@@ -22,7 +22,9 @@
       "PowerShell(git mv .project/tickets/ready/0002-delivery-address.md .project/tickets/in_progress/0002-delivery-address.md)",
       "PowerShell(Move-Item .project/tickets/ready/0002-delivery-address-handoff.md .project/tickets/in_progress/)",
       "Bash(shop-api/.venv/Scripts/python.exe -c \"import rest_framework,django;print\\(rest_framework.VERSION, django.get_version\\(\\)\\)\")",
-      "Bash(shop-api/.venv/Scripts/pip.exe show *)"
+      "Bash(shop-api/.venv/Scripts/pip.exe show *)",
+      "Bash(.venv/Scripts/python.exe -m pip install \"django-countries>=7.6,<8\")",
+      "Bash(.venv/Scripts/python.exe manage.py makemigrations store --name delivery_address)"
     ],
     "additionalDirectories": [
       "c:\\JanFiles\\Application\\offsure\\.agent-work"

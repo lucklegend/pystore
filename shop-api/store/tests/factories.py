@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 from config.fixture_secrets import USER_PASSWORD
 
-from store.models import Category, Order, OrderItem, Product
+from store.models import Category, DeliveryAddress, Order, OrderItem, Product
 
 _sequence = count(1)
 

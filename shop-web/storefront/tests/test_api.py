@@ -29,6 +29,7 @@ class FlattenErrorsTests(SimpleTestCase):
             ({"non_field_errors": ["Bad pair."]}, ["Bad pair."]),
             ({"items": [{"quantity": ["Too many."]}]}, ["quantity: Too many."]),
             (42, ["42"]),
+            ({"delivery_address": ["Choose one of your delivery addresses."]}, ["Choose one of your delivery addresses."]),
         ]
         for data, expected in cases:
             with self.subTest(data=data):
@@ -158,6 +159,13 @@ class ShopApiEndpointTests(SimpleTestCase):
             (lambda: self.api.create_product({"name": "N"}), "POST", "products/", None, {"name": "N"}),
             (lambda: self.api.update_product(4, {"name": "N"}), "PUT", "products/4/", None, {"name": "N"}),
             (lambda: self.api.delete_product(4), "DELETE", "products/4/", None, None),
+            (self.api.list_countries, "GET", "countries/", None, None),
+            (self.api.list_addresses, "GET", "addresses/", None, None),
+            (lambda: self.api.get_address(6), "GET", "addresses/6/", None, None),
+            (lambda: self.api.create_address({"city": "C"}), "POST", "addresses/", None, {"city": "C"}),
+            (lambda: self.api.update_address(6, {"city": "C"}), "PUT", "addresses/6/", None, {"city": "C"}),
+            (lambda: self.api.set_default_address(6), "PATCH", "addresses/6/", None, {"is_default": True}),
+            (lambda: self.api.delete_address(6), "DELETE", "addresses/6/", None, None),
             (lambda: self.api.list_orders(3), "GET", "orders/", {"page": 3}, None),
             (lambda: self.api.get_order(9), "GET", "orders/9/", None, None),
             (lambda: self.api.cancel_order(9), "POST", "orders/9/cancel/", None, None),
@@ -200,9 +208,9 @@ class ShopApiEndpointTests(SimpleTestCase):
         self.assertNotIn("X-SSO-Client-Secret", self.http.request.call_args.kwargs["headers"])
 
     def test_create_order_sends_cart_lines_as_items(self):
-        self.api.create_order({3: 2, 8: 1})
+        self.api.create_order({3: 2, 8: 1}, 5)
 
         self.assertEqual(
             self.http.request.call_args.kwargs["json"],
-            {"items": [{"product": 3, "quantity": 2}, {"product": 8, "quantity": 1}]},
+            {"items": [{"product": 3, "quantity": 2}, {"product": 8, "quantity": 1}], "delivery_address": 5},
         )

@@ -13,8 +13,9 @@ from storefront.api import ShopApi
 from storefront.cart import CART_KEY
 from storefront.session import TOKEN_KEY, USER_KEY
 
-CUSTOMER = {"id": 1, "username": "alice", "email": "alice@example.com", "is_staff": False}
-STAFF = {"id": 2, "username": "sam", "email": "sam@example.com", "is_staff": True}
+CUSTOMER = {"id": 1, "username": "alice", "email": "alice@example.com", "is_staff": False, "full_name": ""}
+STAFF = {"id": 2, "username": "sam", "email": "sam@example.com", "is_staff": True, "full_name": ""}
+COUNTRIES = [{"code": "PH", "name": "Philippines"}, {"code": "SG", "name": "Singapore"}]
 
 
 def product(product_id: int = 1, **overrides) -> dict:
@@ -46,6 +47,29 @@ def order(order_id: int = 1, **overrides) -> dict:
             {"id": 1, "product": 1, "product_name": "Product 1", "quantity": 2, "unit_price": "10.00", "subtotal": "20.00"}
         ],
         "total": "20.00",
+        "shipping_address": None,
+        **overrides,
+    }
+
+
+def address(address_id: int = 1, **overrides) -> dict:
+    return {
+        "id": address_id,
+        "label": "home",
+        "custom_label": "",
+        "label_display": "Home",
+        "is_default": False,
+        "recipient_name": "Alice Cruz",
+        "phone": "+63 912 345 6789",
+        "line1": "12 Rizal Street",
+        "line2": "",
+        "city": "Quezon City",
+        "region": "",
+        "postcode": "1100",
+        "country": "PH",
+        "country_display": "Philippines",
+        "created_at": "2026-01-02T03:04:05Z",
+        "updated_at": "2026-01-02T03:04:05Z",
         **overrides,
     }
 
@@ -65,6 +89,8 @@ class StorefrontTestCase(SimpleTestCase):
         self.api.list_categories.return_value = []
         self.api.list_products.return_value = page([])
         self.api.get_cms_navigation.return_value = {"home_url": "/", "items": []}
+        self.api.list_countries.return_value = COUNTRIES
+        self.api.list_addresses.return_value = []
         patcher = patch("storefront.middleware.ShopApi", return_value=self.api)
         self.api_class = patcher.start()
         self.addCleanup(patcher.stop)

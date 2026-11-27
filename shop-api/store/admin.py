@@ -3,7 +3,21 @@ from django.utils.html import format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from .models import Category, Order, OrderItem, Product
+from .models import Category, DeliveryAddress, Order, OrderItem, Product
+
+SHIPPING_FIELDS = [
+    "shipping_label",
+    "shipping_custom_label",
+    "shipping_recipient_name",
+    "shipping_phone",
+    "shipping_line1",
+    "shipping_line2",
+    "shipping_city",
+    "shipping_region",
+    "shipping_postcode",
+    "shipping_country",
+    "shipping_country_name",
+]
 
 
 @admin.register(Category)
@@ -31,6 +45,12 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ["status"]
     list_editable = ["status"]
     inlines = [OrderItemInline]
+    fieldsets = [
+        (None, {"fields": ["user", "status"]}),
+        (_("Shipping address"), {"fields": SHIPPING_FIELDS}),
+    ]
+    # The address is a copy taken at checkout, and stays as it was.
+    readonly_fields = SHIPPING_FIELDS
 
     def get_queryset(self, request):
         # One query for every listed order's items, rather than one per row.
@@ -45,3 +65,16 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.display(description=_("Total"))
     def order_total(self, order: Order):
         return order.total
+
+
+@admin.register(DeliveryAddress)
+class DeliveryAddressAdmin(admin.ModelAdmin):
+    list_display = ["user", "address_label", "is_default", "recipient_name", "city", "country"]
+    list_select_related = ["user"]
+    search_fields = ["recipient_name", "user__username", "city"]
+    # Changing the default here would skip store.addresses, which clears the user's old one.
+    readonly_fields = ["is_default"]
+
+    @admin.display(description=_("Label"))
+    def address_label(self, address: DeliveryAddress):
+        return address.label_display
