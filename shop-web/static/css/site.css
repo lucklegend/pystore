@@ -183,7 +183,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .button:focus
 }
 .address-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 4px; }
 .address-heading .eyebrow { margin: 0; overflow-wrap: anywhere; }
-.address-lines { margin: 0; overflow-wrap: anywhere; }
+.address-lines { display: block; margin: 0; overflow-wrap: anywhere; }
 .card.is-default { border-color: var(--accent); }
 .address-actions { margin-top: 12px; gap: 14px; }
 

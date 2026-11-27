@@ -1,8 +1,8 @@
-<p class="address-lines">
+<span class="address-lines">
   <strong>{{ address.recipient_name }}</strong><br>
   {{ address.line1 }}<br>
   {% if address.line2 %}{{ address.line2 }}<br>{% endif %}
   {{ address.city }}{% if address.region %}, {{ address.region }}{% endif %}{% if address.postcode %} {{ address.postcode }}{% endif %}<br>
   {{ address.country_display }}<br>
   <span class="muted">{{ address.phone }}</span>
-</p>
+</span>

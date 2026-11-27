@@ -58,7 +58,7 @@ class DeliveryAddress(models.Model):
         max_length=20,
         validators=[
             RegexValidator(
-                r"^\+?[0-9][0-9 ()\-]{5,19}$",
+                r"^\+?[0-9][0-9 ()\-]{5,19}\Z",
                 message="Enter a valid phone number, for example +63 912 345 6789.",
             )
         ],
@@ -82,6 +82,10 @@ class DeliveryAddress(models.Model):
             models.CheckConstraint(
                 condition=Q(label="other") | Q(custom_label=""),
                 name="store_address_custom_label_only_for_other",
+            ),
+            # The values of Label, which a nested Meta can't refer to.
+            models.CheckConstraint(
+                condition=Q(label__in=["home", "office", "other"]), name="store_address_label_in_choices"
             ),
         ]
 
@@ -113,7 +117,9 @@ def resolve_label(label: str, custom_label: str) -> str:
     """The name shown for an address: an Other's own name if it has one, else the choice's name."""
     if label == DeliveryAddress.Label.OTHER and custom_label:
         return custom_label
-    return DeliveryAddress.Label(label).label
+    # An unknown code shows as stored rather than raising, so one bad row can't break every
+    # serialization of the orders it was copied onto.
+    return dict(DeliveryAddress.Label.choices).get(label, label)
 
 
 class Order(models.Model):

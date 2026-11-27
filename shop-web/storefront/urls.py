@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import auth, manage, shop, sso
+from .views import addresses, auth, manage, shop, sso
 
 app_name = "storefront"
 
@@ -12,12 +12,18 @@ urlpatterns = [
     path("account/sso/authorize/", sso.sso_authorize, name="sso_authorize"),
     path("account/sso/callback/", sso.sso_callback, name="sso_callback"),
     path("account/sso/logout/", sso.sso_logout, name="sso_logout"),
+    path("account/addresses/", addresses.address_list, name="address_list"),
+    path("account/addresses/new/", addresses.address_create, name="address_create"),
+    path("account/addresses/<int:address_id>/edit/", addresses.address_edit, name="address_edit"),
+    path("account/addresses/<int:address_id>/default/", addresses.address_set_default, name="address_set_default"),
+    path("account/addresses/<int:address_id>/delete/", addresses.address_delete, name="address_delete"),
     path("shop/", shop.product_list, name="product_list"),
     path("shop/products/<int:product_id>/", shop.product_detail, name="product_detail"),
     path("shop/cart/", shop.cart_detail, name="cart"),
     path("shop/cart/add/<int:product_id>/", shop.cart_add, name="cart_add"),
     path("shop/cart/update/<int:product_id>/", shop.cart_update, name="cart_update"),
     path("shop/cart/remove/<int:product_id>/", shop.cart_remove, name="cart_remove"),
+    path("shop/cart/address/", shop.cart_address_add, name="cart_address_add"),
     path("shop/checkout/", shop.checkout, name="checkout"),
     path("shop/orders/", shop.order_list, name="order_list"),
     path("shop/orders/<int:order_id>/", shop.order_detail, name="order_detail"),

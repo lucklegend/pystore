@@ -37,7 +37,12 @@
       "WebFetch(domain:github.com)",
       "Bash(curl -s -m 20 -X POST https://api.osv.dev/v1/query -d '{\"package\":{\"name\":\"django-countries\",\"ecosystem\":\"PyPI\"},\"version\":\"7.6.1\"}')",
       "Bash(curl -s -m 20 -X POST https://api.osv.dev/v1/query -d '{\"package\":{\"name\":\"django-countries\",\"ecosystem\":\"PyPI\"}}')",
-      "Bash(.venv/Scripts/python.exe manage.py test store.tests.test_addresses -v 2)"
+      "Bash(.venv/Scripts/python.exe manage.py test store.tests.test_addresses -v 2)",
+      "Bash(PYTHONPATH=\"C:/Users/luckl/AppData/Local/Temp/claude/494625ee969a8c73/84c1ee9b-2a88-4bd2-9493-91bcd4e46226/scratchpad/s8routes\" DJANGO_SETTINGS_MODULE=s8_settings .venv/Scripts/python.exe manage.py test)",
+      "Bash(grep -cvE '^\\\\s*\\(#|$\\)' shop-web/storefront/views/shop.py)",
+      "Bash(.venv/Scripts/python.exe -c \"import django, rest_framework, sqlite3, wagtail; print\\(django.__version__, rest_framework.__version__, sqlite3.sqlite_version, wagtail.__version__\\)\")",
+      "Bash(grep -n \"^p\\\\b\\\\|^p,\\\\|[ ,]p {\" static/css/site.css)",
+      "Bash(.venv/Scripts/python.exe -I -c \"import sqlite3; c=sqlite3.connect\\('file:db.sqlite3?mode=ro', uri=True\\); print\\('journal_mode', c.execute\\('pragma journal_mode'\\).fetchone\\(\\)\\)\")"
     ],
     "additionalDirectories": [
       "c:\\JanFiles\\Application\\offsure\\.agent-work"

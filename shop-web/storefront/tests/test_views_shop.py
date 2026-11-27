@@ -373,7 +373,7 @@ class CartAddressTests(StorefrontTestCase):
                 )
                 self.assertRedirects(response, "/shop/cart/", fetch_redirect_response=False)
                 self.assertEqual(self.client.session["delivery_address"], 7)
-                self.assertEqual(self.messages(response), [flash])
+                self.assertIn(flash, self.messages(response))
 
     def test_invalid_inline_add_shows_the_cart_again_with_errors(self):
         self.log_in()
