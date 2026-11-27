@@ -33,3 +33,15 @@ Proposed by Claude when filing, to confirm at planning:
 - Is the address its own settings page, entered inline on the cart page, or both?
 - Guests: the cart works logged out. Should checkout ask them to log in first (as now), then for an
   address?
+
+## Answers (user, 2026-11-28)
+
+- **Address book.** A user can save many delivery addresses. Each one has a label/category such as
+  Home, Office or Other. One must be picked before an order can be placed.
+- **Fields.** Address and phone are required. Adjust the shop-api database (models + migrations) for
+  it.
+- **Where.** Both: a dedicated delivery-address settings page, and inline on the cart page so a user
+  at the cart never has to leave it to add or pick one.
+- **Guests.** Log in first (as now), then add or pick an address before placing the order.
+- Proposed items 3 (shop-api rejects an order without a delivery address) and 4 (each order stores a
+  copy of its address; order detail shows it) are accepted.
