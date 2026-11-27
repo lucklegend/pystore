@@ -30,10 +30,52 @@
         <tfoot><tr><th colspan="3">Total</th><th class="num">${{ total }}</th><th></th></tr></tfoot>
       </table>
     </div>
-    <form method="post" action="{% url 'storefront:checkout' %}" class="checkout">
-      {% csrf_token %}
-      <button class="button" type="submit">{% if shop_user %}Place order{% else %}Log in to check out{% endif %}</button>
-    </form>
+    {% if shop_user %}
+      <section class="address-picker" aria-labelledby="deliver-to-heading">
+        <form id="checkout-form" method="post" action="{% url 'storefront:checkout' %}">
+          {% csrf_token %}
+          <fieldset class="address-options">
+            <legend id="deliver-to-heading">Deliver to</legend>
+            {% for address in addresses %}
+              <label class="address-option">
+                <input type="radio" name="delivery_address" value="{{ address.id }}" required{% if address.id == selected_address_id %} checked{% endif %}>
+                <span class="address-option-body">
+                  {% include "storefront/_address_heading.html" %}
+                  {% include "storefront/_address.html" %}
+                </span>
+              </label>
+            {% empty %}
+              <p id="no-address-hint" class="muted">Add a delivery address to place your order.</p>
+            {% endfor %}
+          </fieldset>
+          {% if addresses %}<p class="small"><a href="{% url 'storefront:address_list' %}">Manage addresses</a></p>{% endif %}
+        </form>
+        {% if can_add_address %}
+          {# Its own form, so it sits outside #checkout-form: forms cannot nest. #}
+          <details class="add-address"{% if not addresses or address_form.errors %} open{% endif %}>
+            <summary>Add a new address</summary>
+            <form method="post" action="{% url 'storefront:cart_address_add' %}" novalidate>
+              {% csrf_token %}
+              {% include "storefront/_address_form_fields.html" with form=address_form %}
+              <div class="form-actions">
+                <button class="button secondary" type="submit">Save address</button>
+              </div>
+            </form>
+          </details>
+        {% else %}
+          <p class="muted small">You've saved {{ max_addresses }} addresses, the most allowed. Delete one in Manage addresses to add another.</p>
+        {% endif %}
+      </section>
+      <div class="checkout">
+        <button class="button" type="submit" form="checkout-form"{% if not addresses %} disabled aria-describedby="no-address-hint"{% endif %}>Place order</button>
+      </div>
+    {% else %}
+      <form method="post" action="{% url 'storefront:checkout' %}" class="checkout">
+        {% csrf_token %}
+        <button class="button" type="submit">Log in to check out</button>
+      </form>
+      <p class="muted small">You'll choose a delivery address after you log in.</p>
+    {% endif %}
   {% else %}
     <section class="empty">
       <p class="muted">Your cart is empty.</p>

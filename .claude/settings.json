@@ -24,7 +24,20 @@
       "Bash(shop-api/.venv/Scripts/python.exe -c \"import rest_framework,django;print\\(rest_framework.VERSION, django.get_version\\(\\)\\)\")",
       "Bash(shop-api/.venv/Scripts/pip.exe show *)",
       "Bash(.venv/Scripts/python.exe -m pip install \"django-countries>=7.6,<8\")",
-      "Bash(.venv/Scripts/python.exe manage.py makemigrations store --name delivery_address)"
+      "Bash(.venv/Scripts/python.exe manage.py makemigrations store --name delivery_address)",
+      "Bash(git check-ignore *)",
+      "Bash(python -)",
+      "Bash(.venv/Scripts/python.exe -m pip show django-countries)",
+      "Bash(.venv/Scripts/python.exe -m pip list)",
+      "Read(//c/Users/luckl/.claude/**)",
+      "Read(//c/JanFiles/Application/shop-web/templates/**)",
+      "Read(//c/JanFiles/Application/**)",
+      "WebFetch(domain:osv.dev)",
+      "Bash(.venv/Scripts/python.exe manage.py test store.tests.test_services)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s -m 20 -X POST https://api.osv.dev/v1/query -d '{\"package\":{\"name\":\"django-countries\",\"ecosystem\":\"PyPI\"},\"version\":\"7.6.1\"}')",
+      "Bash(curl -s -m 20 -X POST https://api.osv.dev/v1/query -d '{\"package\":{\"name\":\"django-countries\",\"ecosystem\":\"PyPI\"}}')",
+      "Bash(.venv/Scripts/python.exe manage.py test store.tests.test_addresses -v 2)"
     ],
     "additionalDirectories": [
       "c:\\JanFiles\\Application\\offsure\\.agent-work"

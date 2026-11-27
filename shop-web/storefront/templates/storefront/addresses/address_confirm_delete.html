@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Delete this address · Offsure Shop{% endblock %}
+{% block content %}
+  <section class="card form-card">
+    <h1>Delete this address?</h1>
+    {% include "storefront/_address_heading.html" %}
+    {% include "storefront/_address.html" %}
+    {% if address.is_default %}
+      <p class="message warning">This is your default address. After you delete it you won't have a default until you set one.</p>
+    {% endif %}
+    <p>Orders you've already placed keep the address they were sent to.</p>
+    <form method="post" class="form-actions">
+      {% csrf_token %}
+      <button class="button danger-button" type="submit">Delete address</button>
+      <a href="{% url 'storefront:address_list' %}">Cancel</a>
+    </form>
+  </section>
+{% endblock %}
