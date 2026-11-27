@@ -16,7 +16,13 @@
       "Bash(.venv/Scripts/python.exe manage.py bootstrap_site)",
       "Bash(curl -s \"http://127.0.0.1:8001/api/cms/pages/resolve/?path=/\")",
       "Bash(curl -s -o /dev/null -w \"storefront: %{http_code}\\\\n\" http://127.0.0.1:8080/)",
-      "Bash(grep -v \"^\\\\s*$\")"
+      "Bash(grep -v \"^\\\\s*$\")",
+      "PowerShell(git mv .project/tickets/planning/0002-delivery-address.md .project/tickets/ready/0002-delivery-address.md)",
+      "PowerShell(Move-Item .project/tickets/planning/0002-delivery-address-handoff.md .project/tickets/ready/)",
+      "PowerShell(git mv .project/tickets/ready/0002-delivery-address.md .project/tickets/in_progress/0002-delivery-address.md)",
+      "PowerShell(Move-Item .project/tickets/ready/0002-delivery-address-handoff.md .project/tickets/in_progress/)",
+      "Bash(shop-api/.venv/Scripts/python.exe -c \"import rest_framework,django;print\\(rest_framework.VERSION, django.get_version\\(\\)\\)\")",
+      "Bash(shop-api/.venv/Scripts/pip.exe show *)"
     ],
     "additionalDirectories": [
       "c:\\JanFiles\\Application\\offsure\\.agent-work"
