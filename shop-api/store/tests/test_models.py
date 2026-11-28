@@ -69,7 +69,7 @@ class DeliveryAddressPhoneTests(TestCase):
 
     def test_rejects_other_text_with_the_example_message(self):
         user = make_user()
-        for phone in ("call me", "12345", "+", "-63 912 345 6789"):
+        for phone in ("call me", "12345", "+", "-63 912 345 6789", "+63 912 345 6789\n"):
             with self.subTest(phone=phone):
                 address = DeliveryAddress(
                     user=user, recipient_name="Ana", phone=phone, line1="1 Rizal Ave", city="Cebu", country="PH"
@@ -113,6 +113,10 @@ class DeliveryAddressConstraintTests(TestCase):
 
         self.assertEqual(address.label_display, "Other")
 
+    def test_label_must_be_one_of_the_choices(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            make_address(make_user(), label="work")
+
 
 class ResolveLabelTests(TestCase):
     def test_other_with_a_name_uses_the_name(self):
@@ -124,6 +128,10 @@ class ResolveLabelTests(TestCase):
     def test_home_and_office_use_the_choice_name(self):
         self.assertEqual(resolve_label("home", ""), "Home")
         self.assertEqual(resolve_label("office", ""), "Office")
+
+    def test_an_unknown_label_shows_as_stored_instead_of_raising(self):
+        self.assertEqual(resolve_label("work", ""), "work")
+        self.assertEqual(resolve_label("", ""), "")
 
     def test_address_label_display_resolves_its_own_fields(self):
         address = make_address(make_user(), label=DeliveryAddress.Label.OTHER, custom_label="Lola's")

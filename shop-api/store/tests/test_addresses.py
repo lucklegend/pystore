@@ -134,6 +134,16 @@ class UpdateAddressTests(TestCase):
         self.assertEqual(default_ids(self.user), [])
         self.assertEqual(self.user.delivery_addresses.count(), 2)
 
+    def test_applies_the_changes_to_the_row_as_it_is_now(self):
+        stale = DeliveryAddress.objects.get(pk=self.other.pk)
+        DeliveryAddress.objects.filter(pk=self.other.pk).update(city="Davao")
+
+        saved = update_address(stale, {"phone": "+63 917 000 0000"})
+
+        self.other.refresh_from_db()
+        self.assertEqual((self.other.city, self.other.phone), ("Davao", "+63 917 000 0000"))
+        self.assertEqual((saved.city, saved.phone), ("Davao", "+63 917 000 0000"))
+
     def test_an_address_deleted_meanwhile_is_not_saved_again(self):
         DeliveryAddress.objects.filter(pk=self.other.pk).delete()
 
@@ -168,6 +178,47 @@ class DeleteAddressTests(TestCase):
         delete_address(other)
 
         self.assertEqual(default_ids(self.user), [default.pk])
+
+
+class WritableFieldsTests(TestCase):
+    """Keys outside the address fields never reach the row, whoever calls the service."""
+
+    def setUp(self):
+        self.user = make_user()
+        self.victim = make_user()
+        self.victims_address = make_address(self.victim, is_default=True, city="Davao")
+
+    def assert_victim_untouched(self):
+        self.victims_address.refresh_from_db()
+        self.assertEqual(
+            (self.victims_address.user, self.victims_address.city, self.victims_address.is_default),
+            (self.victim, "Davao", True),
+        )
+        self.assertEqual(self.victim.delivery_addresses.count(), 1)
+
+    def test_create_ignores_owner_and_row_keys(self):
+        victim_id, row_id = self.victim.pk, self.victims_address.pk
+
+        address = create_address(
+            self.user, address_data(user=self.victim, user_id=victim_id, id=row_id, pk=row_id, is_default=True)
+        )
+
+        address.refresh_from_db()
+        self.assertEqual(address.user, self.user)
+        self.assertNotEqual(address.pk, row_id)
+        self.assert_victim_untouched()
+
+    def test_update_ignores_owner_and_row_keys(self):
+        own = make_address(self.user, is_default=True)
+        victim_id, row_id = self.victim.pk, self.victims_address.pk
+
+        saved = update_address(
+            own, {"user": self.victim, "user_id": victim_id, "id": row_id, "pk": row_id, "city": "Cebu"}
+        )
+
+        own.refresh_from_db()
+        self.assertEqual((saved.pk, own.user, own.city, own.is_default), (own.pk, self.user, "Cebu", True))
+        self.assert_victim_untouched()
 
 
 class OtherUsersDefaultTests(TestCase):

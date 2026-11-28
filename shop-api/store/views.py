@@ -1,13 +1,18 @@
 from django.db.models import ProtectedError, QuerySet
+from django_countries import countries
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
+from rest_framework.views import APIView
 
-from .models import Category, Order, Product
+from .addresses import create_address, delete_address, update_address
+from .models import Category, DeliveryAddress, Order, Product
 from .permissions import IsStaffOrReadOnly
 from .serializers import (
     CategorySerializer,
+    DeliveryAddressSerializer,
     OrderCreateSerializer,
     OrderSerializer,
     ProductSerializer,
@@ -62,6 +67,46 @@ class ProductViewSet(viewsets.ModelViewSet):
             )
 
 
+class CountryListView(APIView):
+    """ISO 3166-1 countries for the address forms, sorted by name: [{code, name}, ...]."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request: Request) -> Response:
+        return Response([{"code": country.code, "name": country.name} for country in countries])
+
+
+class DeliveryAddressViewSet(viewsets.ModelViewSet):
+    """The caller's own delivery addresses, default first.
+
+    Own-only for everyone, staff included, so another user's id is a 404 on every verb.
+    """
+
+    serializer_class = DeliveryAddressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+    # Per user, on writes only: shop-web lists the addresses on every cart view.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "addresses"
+
+    def get_throttles(self) -> list[BaseThrottle]:
+        if self.request.method in permissions.SAFE_METHODS:
+            return []
+        return super().get_throttles()
+
+    def get_queryset(self) -> QuerySet[DeliveryAddress]:
+        return DeliveryAddress.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer: DeliveryAddressSerializer) -> None:
+        serializer.instance = create_address(self.request.user, serializer.validated_data)
+
+    def perform_update(self, serializer: DeliveryAddressSerializer) -> None:
+        serializer.instance = update_address(serializer.instance, serializer.validated_data)
+
+    def perform_destroy(self, instance: DeliveryAddress) -> None:
+        delete_address(instance)
+
+
 class OrderViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -85,7 +130,7 @@ class OrderViewSet(
         serializer = OrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         lines = [(line["product"], line["quantity"]) for line in serializer.validated_data["items"]]
-        order = place_order(request.user, lines)
+        order = place_order(request.user, lines, serializer.validated_data.get("delivery_address"))
         order = self.get_queryset().get(pk=order.pk)
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 

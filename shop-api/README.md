@@ -40,11 +40,19 @@ Authenticate with the header `Authorization: Token <key>`. The API takes no cook
 | POST/PUT/PATCH/DELETE | `/api/categories/…` | staff | |
 | GET | `/api/products/` | anyone | `?search=`, `?category=<id>`, `?ids=1,2`, `?ordering=price`, `?page=`, `?page_size=` |
 | POST/PUT/PATCH/DELETE | `/api/products/…` | staff | delete returns 409 if the product is in an order |
-| GET | `/api/orders/` | logged in | your own orders; staff see all |
-| POST | `/api/orders/` | logged in | `{items: [{product, quantity}]}`; checks and reserves stock |
+| GET | `/api/countries/` | anyone | `[{code, name}]`, ISO 3166-1 alpha-2, sorted by name, not paginated |
+| GET/POST | `/api/addresses/` | logged in | your own delivery addresses, default first, not paginated. 400 `{detail}` past 20 addresses |
+| GET/PUT/PATCH/DELETE | `/api/addresses/<id>/` | owner only, staff included | someone else's address is a 404 |
+| GET | `/api/orders/` | logged in | your own orders; staff see all. Each carries `shipping_address`, or `null` on orders from before addresses |
+| POST | `/api/orders/` | logged in | `{items: [{product, quantity}], delivery_address: <id>}`; checks and reserves stock. A missing address or one that isn't yours is 400 `{delivery_address: ["Choose one of your delivery addresses."]}` |
 | POST | `/api/orders/<id>/cancel/` | owner or staff | pending orders only; stock is returned |
 
 Customers only see active products. Staff see inactive ones too.
+
+**Delivery addresses.** Writable fields: `label` (`home`, `office` or `other`), `custom_label` (up to 50 characters, kept only with `other`), `is_default`, `recipient_name`, `phone`, `line1`, `line2`, `city`, `region`, `postcode`, `country` (alpha-2 code). Responses add `id`, `label_display`, `country_display`, `created_at` and `updated_at`.
+- A user has at most one default. Your first address becomes the default whatever you send. Setting `is_default: true` on another moves the default there. Setting it false, or deleting the default, leaves you with none: nothing is promoted.
+- Writes are throttled to 30 a minute per user.
+- An order copies the address at checkout, so editing or deleting it later doesn't change past orders.
 
 ## The CMS
 

@@ -108,6 +108,12 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        # Each atomic() takes the write lock at BEGIN, so a concurrent writer waits (up to the 5 s
+        # timeout) instead of failing at once with "database is locked". Racing address saves then
+        # get the cap's 400 rather than a 500. select_for_update() is a no-op on SQLite; the user-row
+        # lock in store.addresses is what serialises them on PostgreSQL. Not set on legacy_cms:
+        # it is read-only, and BEGIN IMMEDIATE fails on a read-only database.
+        "OPTIONS": {"transaction_mode": "IMMEDIATE"},
     },
     # Read-only input for `import_legacy_cms`: a copy of shop-web's old CMS database.
     "legacy_cms": {
@@ -162,7 +168,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "store.pagination.StandardPagination",
     "PAGE_SIZE": 12,
-    "DEFAULT_THROTTLE_RATES": {"sso": "30/min"},
+    "DEFAULT_THROTTLE_RATES": {"sso": "30/min", "addresses": "30/min"},
     # Trusted proxies in front of shop-api. With 0, throttles key on REMOTE_ADDR and ignore
     # X-Forwarded-For, which any client can set. Behind N proxies that append to it, set N.
     "NUM_PROXIES": int(os.environ.get("DJANGO_NUM_PROXIES", "0")),
