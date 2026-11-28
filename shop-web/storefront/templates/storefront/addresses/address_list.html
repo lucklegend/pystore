@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Delivery addresses · Offsure Shop{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1>Delivery addresses</h1>
+    {% if can_add %}<a class="button" href="{% url 'storefront:address_create' %}">+ New address</a>{% endif %}
+  </div>
+  {% if addresses %}
+    <ul class="grid address-grid" role="list">
+      {% for address in addresses %}
+        <li class="card{% if address.is_default %} is-default{% endif %}">
+          <div class="card-body">
+            {% include "storefront/_address_heading.html" %}
+            {% include "storefront/_address.html" %}
+            <div class="form-actions small address-actions">
+              <a href="{% url 'storefront:address_edit' address.id %}" aria-label="Edit {{ address.label_display }} address for {{ address.recipient_name }}">Edit</a>
+              {% if not address.is_default %}
+                <form method="post" action="{% url 'storefront:address_set_default' address.id %}" class="inline">
+                  {% csrf_token %}
+                  <button class="link-button" type="submit" aria-label="Set {{ address.label_display }} address for {{ address.recipient_name }} as default">Set as default</button>
+                </form>
+              {% endif %}
+              <a class="danger" href="{% url 'storefront:address_delete' address.id %}" aria-label="Delete {{ address.label_display }} address for {{ address.recipient_name }}">Delete</a>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% if not can_add %}
+      <p class="muted small">You've saved {{ max_addresses }} addresses, the most allowed. Delete one to add another.</p>
+    {% endif %}
+  {% else %}
+    <section class="empty">
+      <p class="muted">You haven't saved a delivery address yet.</p>
+      <a class="button" href="{% url 'storefront:address_create' %}">Add an address</a>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,3 +1,4 @@
 Django>=5.2,<5.3
 djangorestframework>=3.18.2,<3.19
+django-countries>=7.6,<8
 wagtail>=7.0,<7.1

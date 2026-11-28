@@ -5,13 +5,16 @@ from typing import Iterable, Tuple
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
-from .models import Order, OrderItem, Product
+from .models import DeliveryAddress, Order, OrderItem, Product
 
 OrderLine = Tuple[int, int]  # (product_id, quantity)
 
 
-def place_order(user, lines: Iterable[OrderLine]) -> Order:
-    """Create a pending order and reserve stock. Raises ValidationError if stock runs short."""
+def place_order(user, lines: Iterable[OrderLine], address_id: int | None) -> Order:
+    """Create a pending order shipping to one of the user's addresses and reserve stock.
+
+    Raises ValidationError if the address is missing or not the user's, or if stock runs short.
+    """
     quantities = Counter()
     for product_id, quantity in lines:
         quantities[product_id] += quantity
@@ -19,6 +22,14 @@ def place_order(user, lines: Iterable[OrderLine]) -> Order:
         raise ValidationError({"items": ["An order needs at least one item."]})
     # this will check the database for stock availability and reserve it in a transaction
     with transaction.atomic():
+        # Scoped to the user, staff included, so nobody can ship to someone else's address.
+        # A missing id and a foreign one get the same message, so ids cannot be probed.
+        address = None
+        if address_id is not None:
+            address = DeliveryAddress.objects.filter(pk=address_id, user=user).first()
+        if address is None:
+            raise ValidationError({"delivery_address": ["Choose one of your delivery addresses."]})
+
         products = Product.objects.select_for_update().filter(pk__in=quantities, is_active=True)
         by_id = {product.pk: product for product in products}
 
@@ -34,7 +45,7 @@ def place_order(user, lines: Iterable[OrderLine]) -> Order:
         if short:
             raise ValidationError({"items": short})
 
-        order = Order.objects.create(user=user)
+        order = Order.objects.create(user=user, **address.snapshot_fields())
         for pk, quantity in quantities.items():
             product = by_id[pk]
             OrderItem.objects.create(order=order, product=product, quantity=quantity, unit_price=product.price)

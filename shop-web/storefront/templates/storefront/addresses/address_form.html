@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{% if address %}Edit {{ address.label_display }} address{% else %}New address{% endif %} · Offsure Shop{% endblock %}
+{% block content %}
+  <p><a href="{% url 'storefront:address_list' %}">← All addresses</a></p>
+  <section class="card form-card">
+    <h1>{% if address %}Edit {{ address.label_display }} address{% else %}New address{% endif %}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "storefront/_address_form_fields.html" %}
+      <div class="form-actions">
+        <button class="button" type="submit">Save address</button>
+        {% if address %}<a class="danger" href="{% url 'storefront:address_delete' address.id %}">Delete</a>{% endif %}
+      </div>
+    </form>
+  </section>
+{% endblock %}

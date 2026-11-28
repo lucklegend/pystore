@@ -17,6 +17,7 @@
         {% endfor %}
         {% if shop_user %}
           <li><a href="{% url 'storefront:order_list' %}">Orders</a></li>
+          <li><a href="{% url 'storefront:address_list' %}">Addresses</a></li>
           {% if shop_user.is_staff %}<li><a href="{% url 'storefront:manage_products' %}">Manage</a></li>
             <li><a href="{{ cms_url }}">CMS</a></li>{% endif %}
         {% endif %}

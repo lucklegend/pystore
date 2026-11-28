@@ -20,6 +20,18 @@
     </table>
   </div>
 
+  <section class="card shipping-card" aria-labelledby="shipping-heading">
+    <div class="card-body">
+      <h2 id="shipping-heading">Shipping to</h2>
+      {% if order.shipping_address %}
+        {% include "storefront/_address_heading.html" with address=order.shipping_address snapshot=True %}
+        {% include "storefront/_address.html" with address=order.shipping_address %}
+      {% else %}
+        <p class="muted">No delivery address recorded.</p>
+      {% endif %}
+    </div>
+  </section>
+
   {% if order.status == "pending" %}
     <form method="post" action="{% url 'storefront:order_cancel' order.id %}">
       {% csrf_token %}<button class="button secondary" type="submit">Cancel order</button>

@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 import requests
 
-NON_FIELD_KEYS = ("detail", "non_field_errors", "items")
+NON_FIELD_KEYS = ("detail", "non_field_errors", "items", "delivery_address")
 
 
 def flatten_errors(data: Any, prefix: str = "") -> list[str]:
@@ -149,6 +149,28 @@ class ShopApi:
     def delete_product(self, product_id: int) -> None:
         self._request("DELETE", f"products/{product_id}/")
 
+    # Countries and delivery addresses
+    def list_countries(self) -> list[dict]:
+        return self._request("GET", "countries/")
+
+    def list_addresses(self) -> list[dict]:
+        return self._request("GET", "addresses/")
+
+    def get_address(self, address_id: int) -> dict:
+        return self._request("GET", f"addresses/{address_id}/")
+
+    def create_address(self, payload: dict) -> dict:
+        return self._request("POST", "addresses/", json=payload)
+
+    def update_address(self, address_id: int, payload: dict) -> dict:
+        return self._request("PUT", f"addresses/{address_id}/", json=payload)
+
+    def set_default_address(self, address_id: int) -> dict:
+        return self._request("PATCH", f"addresses/{address_id}/", json={"is_default": True})
+
+    def delete_address(self, address_id: int) -> None:
+        self._request("DELETE", f"addresses/{address_id}/")
+
     # Orders
     def list_orders(self, page: int = 1) -> dict:
         return self._request("GET", "orders/", params={"page": page})
@@ -156,9 +178,9 @@ class ShopApi:
     def get_order(self, order_id: int) -> dict:
         return self._request("GET", f"orders/{order_id}/")
 
-    def create_order(self, lines: Mapping[int, int]) -> dict:
+    def create_order(self, lines: Mapping[int, int], address_id: int) -> dict:
         items = [{"product": product_id, "quantity": quantity} for product_id, quantity in lines.items()]
-        return self._request("POST", "orders/", json={"items": items})
+        return self._request("POST", "orders/", json={"items": items, "delivery_address": address_id})
 
     def cancel_order(self, order_id: int) -> dict:
         return self._request("POST", f"orders/{order_id}/cancel/")

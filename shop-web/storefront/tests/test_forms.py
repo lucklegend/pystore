@@ -1,10 +1,21 @@
+from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
 from config.fixture_secrets import USER_PASSWORD, WRONG_PASSWORD
 
 from storefront.api import ApiError
-from storefront.forms import AddToCartForm, LoginForm, ProductForm, RegisterForm, apply_api_errors
+from storefront.forms import (
+    AddressForm,
+    AddToCartForm,
+    LoginForm,
+    ProductForm,
+    RegisterForm,
+    address_initial,
+    apply_api_errors,
+    new_address_initial,
+)
 
+COUNTRY_CHOICES = [("PH", "Philippines"), ("SG", "Singapore")]
 CATEGORIES = [{"id": 1, "name": "Tea"}, {"id": 2, "name": "Coffee"}]
 
 
@@ -83,6 +94,140 @@ class AddToCartFormTests(SimpleTestCase):
         for quantity, valid in (("1", True), ("99", True), ("0", False), ("100", False), ("x", False)):
             with self.subTest(quantity=quantity):
                 self.assertEqual(AddToCartForm({"quantity": quantity}).is_valid(), valid)
+
+
+def address_data(**overrides) -> dict:
+    return {"label": "home", "custom_label": "", "recipient_name": "Alice Cruz", "phone": "+63 912 345 6789",
+            "line1": "12 Rizal Street", "line2": "", "city": "Quezon City", "region": "", "postcode": "1100",
+            "country": "PH", **overrides}
+
+
+def saved(**overrides) -> dict:
+    return {"id": 1, "label": "home", "custom_label": "", "is_default": False, "recipient_name": "Alice Cruz",
+            "phone": "+63 912 345 6789", "line1": "12 Rizal Street", "line2": "", "city": "Quezon City",
+            "region": "", "postcode": "1100", "country": "PH", **overrides}
+
+
+class AddressFormTests(SimpleTestCase):
+    def form(self, **overrides) -> AddressForm:
+        return AddressForm(address_data(**overrides), countries=COUNTRY_CHOICES)
+
+    def test_offers_a_blank_option_then_the_given_countries(self):
+        form = AddressForm(countries=COUNTRY_CHOICES)
+
+        self.assertEqual(form.fields["country"].choices, [("", "Choose a country")] + COUNTRY_CHOICES)
+
+    def test_valid_with_only_the_required_fields(self):
+        self.assertTrue(self.form().is_valid())
+
+    def test_required_fields(self):
+        form = AddressForm({}, countries=COUNTRY_CHOICES)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(set(form.errors), {"label", "recipient_name", "phone", "line1", "city", "country"})
+        self.assertEqual(form.errors["city"], ["This field is required."])
+
+    def test_other_with_a_blank_name_is_valid(self):
+        form = self.form(label="other", custom_label="   ")
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["custom_label"], "")
+
+    def test_other_keeps_its_name_stripped(self):
+        form = self.form(label="other", custom_label="  Mom's house ")
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["custom_label"], "Mom's house")
+
+    def test_home_and_office_drop_a_name(self):
+        for label in ("home", "office"):
+            with self.subTest(label=label):
+                form = self.form(label=label, custom_label="Mom's house")
+
+                self.assertTrue(form.is_valid(), form.errors)
+                self.assertEqual(form.cleaned_data["custom_label"], "")
+
+    def test_a_name_over_50_characters_is_rejected(self):
+        form = self.form(label="other", custom_label="x" * 51)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["custom_label"], ["Keep the name to 50 characters or fewer."])
+
+    def test_country_messages(self):
+        blank = self.form(country="")
+        unknown = self.form(country="ZZ")
+
+        self.assertFalse(blank.is_valid())
+        self.assertFalse(unknown.is_valid())
+        self.assertEqual(blank.errors["country"], ["Choose a country."])
+        self.assertEqual(unknown.errors["country"], ["Choose a country from the list."])
+
+    def test_phone_message(self):
+        form = self.form(phone="call me")
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["phone"], ["Enter a valid phone number, for example +63 912 345 6789."])
+
+    def test_to_payload_matches_the_api_shape(self):
+        form = self.form(label="other", custom_label="Mom's house", is_default="on", line2="Unit 4")
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(
+            form.to_payload(),
+            {"label": "other", "custom_label": "Mom's house", "is_default": True, "recipient_name": "Alice Cruz",
+             "phone": "+63 912 345 6789", "line1": "12 Rizal Street", "line2": "Unit 4", "city": "Quezon City",
+             "region": "", "postcode": "1100", "country": "PH"},
+        )
+
+    def test_unchecked_default_is_false(self):
+        form = self.form()
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertIs(form.to_payload()["is_default"], False)
+
+    def test_partial_renders_the_label_radios_and_each_field_once(self):
+        html = render_to_string(
+            "storefront/_address_form_fields.html",
+            {"form": AddressForm(initial={"label": "home"}, countries=COUNTRY_CHOICES)},
+        )
+
+        self.assertEqual(html.count('name="label"'), 3)
+        self.assertEqual(html.count('name="custom_label"'), 1)
+        self.assertEqual(html.count('name="country"'), 1)
+        self.assertIn("Use as my default address", html)
+
+
+class AddressInitialTests(SimpleTestCase):
+    def test_address_initial_prefills_every_form_field(self):
+        address = saved(label="other", custom_label="Mom's house", is_default=True)
+
+        initial = address_initial(address)
+
+        self.assertEqual(set(initial), set(AddressForm.base_fields))
+        self.assertEqual(initial["custom_label"], "Mom's house")
+        self.assertIs(initial["is_default"], True)
+
+    def test_new_address_uses_the_default_over_the_newest(self):
+        newest = saved(id=2, recipient_name="Newest", country="SG")
+        default = saved(id=1, is_default=True, recipient_name="Default", country="PH")
+
+        initial = new_address_initial([default, newest], "Alice Cruz")
+
+        self.assertEqual(initial, {"recipient_name": "Default", "country": "PH", "is_default": False})
+
+    def test_new_address_uses_the_newest_over_the_full_name(self):
+        newest = saved(id=2, recipient_name="Newest", country="SG")
+        older = saved(id=1, recipient_name="Older", country="PH")
+
+        initial = new_address_initial([newest, older], "Alice Cruz")
+
+        self.assertEqual(initial, {"recipient_name": "Newest", "country": "SG", "is_default": False})
+
+    def test_new_address_with_none_saved_uses_the_full_name_and_checks_default(self):
+        self.assertEqual(
+            new_address_initial([], "Alice Cruz"),
+            {"recipient_name": "Alice Cruz", "country": "", "is_default": True},
+        )
 
 
 class ApplyApiErrorsTests(SimpleTestCase):

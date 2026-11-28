@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 from config.fixture_secrets import USER_PASSWORD
 
-from store.models import Category, Order, OrderItem, Product
+from store.models import Category, DeliveryAddress, Order, OrderItem, Product
 
 _sequence = count(1)
 
@@ -47,3 +47,15 @@ def make_order(user, items: list[tuple[Product, int]], *, status: str = Order.St
     for product, quantity in items:
         OrderItem.objects.create(order=order, product=product, quantity=quantity, unit_price=product.price)
     return order
+
+
+def make_address(user, **overrides) -> DeliveryAddress:
+    """Build an address directly, bypassing the default rules in store.addresses."""
+    fields = {
+        "recipient_name": "Juan dela Cruz",
+        "phone": "+63 912 345 6789",
+        "line1": "12 Mabini Street",
+        "city": "Makati",
+        "country": "PH",
+    }
+    return DeliveryAddress.objects.create(user=user, **(fields | overrides))

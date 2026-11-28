@@ -28,6 +28,10 @@ The routes under `/account/sso/` (`begin`, `authorize`, `callback`, `logout`) ar
 
 Published CMS changes appear on the storefront within a minute (`CMS_CACHE_SECONDS`). If shop-api is down, `/` and `/about/` show the "Shop temporarily unavailable" page, like every `/shop/` page.
 
+## Delivery addresses
+
+A logged-in shopper keeps an address book (Home, Office or Other with their own name, and an optional default) at `/account/addresses/`, or adds one inline on the cart page. Checkout needs one of the shopper's own addresses. The order keeps a frozen copy of it. The cap of 20 addresses is enforced by shop-api. `MAX_ADDRESSES` in `forms.py` only hides the add buttons early.
+
 ## Layout
 
 - `home/`: renders CMS pages. `cms.py` fetches and caches a page payload from shop-api, `views.py` picks a template per page type (`HomePage` shows the newest products, `StandardPage` is plain content) and applies CMS redirects. `config/urls.py` ends with a catch-all that sends slash-terminated paths here.
@@ -35,7 +39,8 @@ Published CMS changes appear on the storefront within a minute (`CMS_CACHE_SECON
 - `storefront/sso.py` and `storefront/views/sso.py`: the SSO handshake.
 - `storefront/middleware.py`: attaches `request.shop_api` and `request.shop_user`, and turns unhandled API errors into a login redirect (401), a 404, or an error page.
 - `storefront/cart.py`: the session cart (product id → quantity). Prices are always re-read from the API.
-- `storefront/views/`: `auth.py`, `shop.py` (catalogue, cart, checkout, orders), `manage.py` (staff product CRUD), `sso.py`.
+- `storefront/views/`: `auth.py`, `shop.py` (catalogue, cart, inline add of a delivery address, checkout, orders), `addresses.py` (the address book at `/account/addresses/`), `manage.py` (staff product CRUD), `sso.py`.
+- `storefront/countries.py`: the country dropdown choices. They come from shop-api's `GET /api/countries/`, cached for a day, so shop-web does not install `django-countries`. Only shop-api does, and it is the one place that list and its validation live.
 
 ## Configuration
 
